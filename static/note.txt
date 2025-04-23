@@ -1,0 +1,1 @@
+This is for our css and javascripts stuffs. All templates should be in the templates folder
