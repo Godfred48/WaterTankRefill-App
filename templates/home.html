@@ -43,16 +43,16 @@
       <div class="collapse navbar-collapse" id="navbarContent">
         <!-- Nav Links -->
         <ul class="navbar-nav me-auto mb-2 mb-lg-0 text-center">
-          <li class="nav-item px-2"><a class="nav-link" href="home.html">Home</a></li>
-          <li class="nav-item px-2"><a class="nav-link" href="services.html">Services</a></li>
+          <li class="nav-item px-2"><a class="nav-link" href="{% url 'home' %}">Home</a></li>
+          <li class="nav-item px-2"><a class="nav-link" href="{% url 'services' %}">Services</a></li>
           <li class="nav-item px-2"><a class="nav-link" href="#contact">Contact</a></li>
-          <li class="nav-item px-2"><a class="nav-link" href="about.html">About</a></li>
+          <li class="nav-item px-2"><a class="nav-link" href="{% url 'about' %}">About</a></li>
         </ul>
 
         <!-- Auth Buttons -->
         <div class="d-flex justify-content-center gap-2 mt-3 mt-lg-0">
-          <a href="signin.html" target="_blank" class="btn btn-outline-primary">Login</a>
-          <a href="signup.html" target="_blank" class="btn btn-primary">Register</a>
+          <a href="{% url 'signin' %}" target="_blank" class="btn btn-outline-primary">Login</a>
+          <a href="{% url 'signup' %}" target="_blank" class="btn btn-primary">Register</a>
         </div>
       </div>
     </div>
@@ -66,7 +66,7 @@
         We are here to help you gather a very good and nice experience concerning your water tank refill.
         Join us today and let’s help you locate water tank refill vendors near you.
       </p>
-      <a href="signup.html" target="_blank">
+      <a href="{% url 'signup' %}" target="_blank">
         <button class="btn btn-primary mt-4">Join Us By Signing Up</button>
       </a>
     </div>
