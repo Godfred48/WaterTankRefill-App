@@ -95,7 +95,7 @@
 <!-- Main Content Area -->
 <div class="main-content">
   <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="h4">Welcome back, User</h2>
+    <h2 class="h4">Welcome back, {{request.user.get_full_name}}</h2>
     <span class="text-muted">Today: <span id="date"></span></span>
   </div>
 
