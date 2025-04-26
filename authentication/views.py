@@ -3,11 +3,18 @@ from packages.log_entry import create_log_entry
 from django.views.generic import FormView, RedirectView
 from django.contrib.auth import login, authenticate, logout
 from django.urls import reverse_lazy
-from .forms import SignUpForm, LoginForm
+from .forms import SignUpForm, LoginForm,DriverOnboardingForm
 from .models import User
 from django.contrib import messages
 from django.contrib.contenttypes.models import ContentType
 from django.views.generic import View,CreateView,UpdateView,DeleteView,DetailView
+from django.contrib.auth import get_user_model
+from .forms import *
+from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
+from django.db.models import Count
+from packages.decorators import vendor_required, customer_required, admin_required
+from django.utils.decorators import method_decorator
 
 # Create your views here.
 def home(request):
@@ -35,6 +42,14 @@ def orders(request):
 def vendor_dashboard(request):
     return render(request, 'vendor/vendor_dashboard.html')
 
+
+import secrets
+import string
+
+# Generate a secure random password
+def generate_random_password(length=10):
+    chars = string.ascii_letters + string.digits
+    return ''.join(secrets.choice(chars) for _ in range(length))
 
 
 
@@ -138,3 +153,44 @@ class LogoutView(View):
         messages.info(request, 'You have successfully logged out.')
         return redirect('test/login')
 
+
+
+User = get_user_model()
+@method_decorator((login_required, vendor_required), name='dispatch')
+class DriverOnboardingView(FormView):
+    template_name = 'vendor/driver_onboard.html'
+    form_class = DriverOnboardingForm
+    success_url = reverse_lazy('vendor_dashboard')
+
+    def form_valid(self, form):
+        user = self.request.user
+        if not user.is_vendor:
+            messages.error(self.request, "Only vendors can onboard drivers.")
+            return redirect('home')
+        # Generate and set a random password
+        random_password = generate_random_password()
+
+
+        # Create user account for the driver
+        driver_user = User.objects.create_user(
+            full_name=form.cleaned_data['full_name'],
+            email=form.cleaned_data['email'],
+            phone_number=form.cleaned_data['phone_number'],
+            address=form.cleaned_data['address'],
+            gender=form.cleaned_data['gender'],
+            is_driver=True
+        )
+
+        driver_user.set_password(random_password)
+        driver_user.save()
+
+        # Link driver profile
+        Driver.objects.create(
+            user=driver_user,
+            vendor=user.drivers,  # assuming there's a related_name from User to Vendor
+            license_number=form.cleaned_data['license_number'],
+            vehicle_type=form.cleaned_data['vehicle_type']
+        )
+
+        messages.success(self.request, "Driver onboarded successfully.")
+        return super().form_valid(form)
