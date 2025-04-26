@@ -1,4 +1,5 @@
 from django.shortcuts import render
+from packages.log_entry import create_log_entry
 
 # Create your views here.
 def home(request):
