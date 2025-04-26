@@ -6,6 +6,8 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.translation import gettext_lazy as _
 from .models import User,Vendor,Driver,Tank,Order,Payment,Delivery,Review
 
+from django.contrib.admin.models import LogEntry
+
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
@@ -108,3 +110,4 @@ admin.site.register(Order, OrderAdmin)
 admin.site.register(Payment, PaymentAdmin)
 admin.site.register(Delivery, DeliveryAdmin)
 admin.site.register(Review, ReviewAdmin)
+admin.site.register(LogEntry)
