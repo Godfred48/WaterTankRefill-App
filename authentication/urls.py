@@ -5,7 +5,7 @@ from .views import *
 urlpatterns = [
     path('', HomeView.as_view(), name = 'home'),
     
-    path('customer_dashboard/', views.customer_dashboard, name='customer_dashboard'),
+    path('customer_dashboard/', CustomerDashboard.as_view(), name='customer_dashboard'),
     path('about/', views.about, name = 'about'),
     path('services/', views.services, name = 'services'),
     path('orders/', views.orders, name= 'orders'),
@@ -17,5 +17,7 @@ urlpatterns = [
     path('vendor/unboard_driver/', DriverOnboardingView.as_view(), name='onboard_drive'),
     #vendors
     path('customer/vendors/', Vendors.as_view(), name='vendors'),
+    #customer orders
+    path('customer/orders/', CustomerViewOrders.as_view(), name='customer_orders'),
 
 ]
