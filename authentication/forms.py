@@ -4,7 +4,7 @@ from .models import User
 from django.contrib.auth import authenticate
 from django import forms
 from django.contrib.auth import get_user_model
-from .models import Driver
+from .models import Driver,Order
 
 User = get_user_model()
 
@@ -82,3 +82,37 @@ class DriverOnboardingForm(forms.Form):
         if Driver.objects.filter(license_number=license_number).exists():
             raise forms.ValidationError("A driver with this license number already exists.")
         return license_number
+
+
+
+
+
+class OrderForm(forms.ModelForm):
+    class Meta:
+        model = Order
+        fields = [
+            'customer',
+            'vendor',
+            'payment_method',
+            'litres',
+            'tank_type',
+        ]
+        widgets = {
+            'payment_method': forms.Select(attrs={'class': 'form-control'}),
+            'tank_type': forms.Select(attrs={'class': 'form-control'}),
+            'litres': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter number of litres'}),
+            'customer': forms.Select(attrs={'class': 'form-control'}),
+            'vendor': forms.Select(attrs={'class': 'form-control'}),
+        }
+
+    def clean_litres(self):
+        litres = self.cleaned_data.get('litres')
+        if not litres:
+            raise forms.ValidationError("This field is required.")
+        try:
+            litres_value = float(litres)
+            if litres_value <= 0:
+                raise forms.ValidationError("Litres must be a positive number.")
+        except ValueError:
+            raise forms.ValidationError("Please enter a valid number for litres.")
+        return litres
