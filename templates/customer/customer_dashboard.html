@@ -85,8 +85,8 @@
 <!-- Sidebar for Desktop -->
 <div class="sidebar-desktop d-none d-md-block">
   <h4 class="mb-4">Tank Fill</h4>
-  <a href="customer_dashboard.html"><i class="bi bi-house-door me-2"></i> Dashboard</a>
-  <a href="orders.html"><i class="bi bi-truck me-2"></i> Orders</a>
+  <a href="{% url 'customer_dashboard' %}"><i class="bi bi-house-door me-2"></i> Dashboard</a>
+  <a href="{% url 'customer_orders' %}"><i class="bi bi-truck me-2"></i> Orders</a>
   <a href="#"><i class="bi bi-person me-2"></i> Profile</a>
   <a href="#"><i class="bi bi-gear me-2"></i> Settings</a>
   <a href="{% url 'logout' %}"><i class="bi bi-box-arrow-right me-2"></i> Logout</a>
@@ -103,32 +103,38 @@
     <div class="col-sm-6 col-lg-4">
       <div class="card shadow-sm p-3">
         <h6 class="text-muted">Total Orders</h6>
-        <h3>42</h3>
+        <h3>{{ orders.count }}</h3>
       </div>
     </div>
     <div class="col-sm-6 col-lg-4">
       <div class="card shadow-sm p-3">
         <h6 class="text-muted">Active Refills</h6>
-        <h3>5</h3>
+        <h3>{{ active_refills_count }}</h3>
       </div>
     </div>
     <div class="col-sm-6 col-lg-4">
       <div class="card shadow-sm p-3">
         <h6 class="text-muted">Pending Deliveries</h6>
-        <h3>2</h3>
+        <h3>{{ pending_orders_count }}</h3>
       </div>
     </div>
   </div>
+  
 
   <div class="card shadow-sm p-3">
     <h5>Recent Activity</h5>
     <ul class="list-group list-group-flush">
-      <li class="list-group-item">You placed an order for a horizontal tank refill.</li>
-      <li class="list-group-item">Refill completed for vertical tank - 10am, Jul 3</li>
-      <li class="list-group-item">New vendor added to your area.</li>
+      {% for order in orders|slice:":5" %}
+        <li class="list-group-item">
+          Order placed for {{ order.tank_type|title }} tank - {{ order.order_date|date:"M d, Y H:i" }} (Status: {{ order.status }})
+        </li>
+      {% empty %}
+        <li class="list-group-item">No recent activities yet.</li>
+      {% endfor %}
     </ul>
   </div>
 </div>
+  
 
 <script>
   document.getElementById('date').textContent = new Date().toDateString();
