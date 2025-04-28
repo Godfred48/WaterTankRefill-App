@@ -241,6 +241,13 @@ class Delivery(models.Model):
     driver = models.ForeignKey(Driver, on_delete=models.SET_NULL, null=True, blank=True)
     payment = models.ForeignKey(Payment, on_delete=models.SET_NULL, null=True, blank=True)
     is_deleivered = models.BooleanField(default=False)
+    # Add these for tracking
+    driver_current_lat = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    driver_current_lng = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    customer_lat = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    customer_lng = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    estimated_arrival_time = models.DateTimeField(null=True, blank=True)
+    last_updated = models.DateTimeField(auto_now=True)  # auto update location timestamp
 
     def __str__(self):
         return f"Delivery for Order #{self.order.order_id}"
@@ -254,6 +261,7 @@ class Review(models.Model):
     customer = models.ForeignKey(User, on_delete=models.CASCADE, limit_choices_to={'is_customer': True})
     vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE)
     review_date = models.DateTimeField(default=timezone.now)
+    
 
     def __str__(self):
         return f"{self.rating} - {self.customer.full_name}"
