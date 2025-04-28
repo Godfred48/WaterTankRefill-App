@@ -5,9 +5,10 @@ from django.contrib.auth import login, authenticate, logout
 from django.urls import reverse_lazy
 from .forms import SignUpForm, LoginForm,DriverOnboardingForm
 from .models import User
+from .models import *
 from django.contrib import messages
 from django.contrib.contenttypes.models import ContentType
-from django.views.generic import View,CreateView,UpdateView,DeleteView,DetailView
+from django.views.generic import View,CreateView,UpdateView,DeleteView,DetailView,ListView
 from django.contrib.auth import get_user_model
 from .forms import *
 from django.http import JsonResponse
@@ -37,7 +38,7 @@ def signup(request):
     return render(request, 'signup.html')
 
 def orders(request):
-    return render(request, 'orders.html')
+    return render(request, 'customer/order_form.html')
 
 def vendor_dashboard(request):
     return render(request, 'vendor/vendor_dashboard.html')
@@ -183,14 +184,53 @@ class DriverOnboardingView(FormView):
 
         driver_user.set_password(random_password)
         driver_user.save()
+        vendor = Vendor.objects.get(user=user)
 
         # Link driver profile
         Driver.objects.create(
             user=driver_user,
-            vendor=user.drivers,  # assuming there's a related_name from User to Vendor
+            vendor=vendor,  # assuming there's a related_name from User to Vendor
             license_number=form.cleaned_data['license_number'],
             vehicle_type=form.cleaned_data['vehicle_type']
         )
+        
 
         messages.success(self.request, "Driver onboarded successfully.")
         return super().form_valid(form)
+
+
+@method_decorator((login_required, customer_required), name='dispatch')
+class Vendors(View):
+    
+    template_name = 'customer/test/order_form.html'
+
+    def get(self,request,*args,**kwargs):
+        query = request.GET.get('q')  # <-- get search query from URL
+        if query:
+            vendors = Vendor.objects.filter(
+                Q(name__icontains=query) |
+                Q(location__icontains=query) |
+                Q(phone__icontains=query)
+            )
+        else:
+           vendors = Vendor.objects.all()
+        #vendors = Vendor.objects.all()
+        form = OrderForm()
+        context = {'vendors': vendors, 'form': form}
+        return render(request, self.template_name,context)
+        
+
+    def post(self,request,*args,**kwargs):
+        form = OrderForm(request.POST)
+        vendors = Vendor.objects.all()
+        if form.is_valid():
+            order = form.save(commit=False)
+            order.customer = request.user  # Force the logged-in user
+            order.save()
+            messages.success(request, 'Your order has been placed successfully!')
+            return redirect('customer_dashboard')
+        else:
+            messages.error(request, 'Please correct the errors below.')
+        context = {'vendors': vendors, 'form': form}
+        return render(request, self.template_name,context)
+
