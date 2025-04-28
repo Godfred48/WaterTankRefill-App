@@ -53,6 +53,13 @@ def generate_random_password(length=10):
     return ''.join(secrets.choice(chars) for _ in range(length))
 
 
+class HomeView(View):
+    template_name = 'home.html'
+    def get(self, request):
+        
+        return render(self.request, self.template_name)
+
+
 
 
 class SignUpView(FormView):
@@ -152,7 +159,7 @@ class LogoutView(View):
         
         logout(request)
         messages.info(request, 'You have successfully logged out.')
-        return redirect('test/login')
+        return redirect('login')
 
 
 
