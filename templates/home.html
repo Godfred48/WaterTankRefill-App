@@ -51,8 +51,13 @@
 
         <!-- Auth Buttons -->
         <div class="d-flex justify-content-center gap-2 mt-3 mt-lg-0">
+          {% if not request.user.is_authenticated %}
           <a href="{% url 'login' %}" target="_blank" class="btn btn-outline-primary">Login</a>
           <a href="{% url 'signup' %}" target="_blank" class="btn btn-primary">Register</a>
+          {% else %}
+          <a href="{% url 'customer_dashboard' %}" target="_blank" class="btn btn-outline-primary">dashboard</a>
+          <a href="{% url 'logout' %}" target="_blank" class="btn btn-primary">Logout</a>
+          {% endif %}
         </div>
       </div>
     </div>
@@ -66,9 +71,11 @@
         We are here to help you gather a very good and nice experience concerning your water tank refill.
         Join us today and let’s help you locate water tank refill vendors near you.
       </p>
+      {% if not request.user.is_authenticated %}
       <a href="{% url 'signup' %}" target="_blank">
         <button class="btn btn-primary mt-4">Join Us By Signing Up</button>
       </a>
+      {% endif %}
     </div>
   </div>
 
