@@ -241,3 +241,33 @@ class Vendors(View):
         context = {'vendors': vendors, 'form': form}
         return render(request, self.template_name,context)
 
+
+class CustomerDashboard(View):
+    template_name = 'customer/customer_dashboard.html'
+    def get(self, request,*args,**kwargs):
+        orders = Order.objects.filter(customer=request.user).order_by('-order_date')
+        completed_orders = orders.filter(is_complete=True)
+        pending_orders = orders.filter(is_complete=False)
+        active_refills = orders.filter(status='Delivered') 
+
+        context = {
+            'orders': orders,
+            'completed_orders_count': completed_orders.count(),
+            'pending_orders_count': pending_orders.count(),
+            'active_refills_count': active_refills.count(),
+        }
+        return render(request, self.template_name,context)
+
+
+
+@method_decorator((login_required, customer_required), name='dispatch')
+class CustomerViewOrders(ListView):
+    model = Order
+    template_name = 'orders.html'
+    context_object_name = 'orders'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_name'] = 'order_list'
+        context['list_name'] = 'order_list'
+        return context
