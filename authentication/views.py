@@ -358,6 +358,7 @@ class VendorViewOrders(ListView):
 
         # Update order status to accepted
         order.status = 'Accepted'
+        messages.success(request, f"Order status updated successfully")
         order.save()
         # Assign driver and create delivery entry
         if driver_id:
