@@ -47,6 +47,8 @@ def vendor_dashboard(request):
     return render(request, 'vendor/vendor_dashboard.html')
 
 
+
+
 import secrets
 import string
 
