@@ -335,3 +335,87 @@ class CustomerViewOrders(ListView):
         context['monthly_data_json'] = json.dumps(monthly_data)
         context['yearly_data_json'] = json.dumps(yearly_data)
         return context
+
+
+
+
+
+@method_decorator((login_required, vendor_required), name='dispatch')
+class VendorViewOrders(ListView):
+    model = Order
+    template_name = 'vendor/new_order.html'
+    context_object_name = 'orders'
+
+    def get_queryset(self):
+        return Order.objects.filter(vendor=self.request.user.vendor_profile).order_by('-order_date')
+
+    def post(self, request, *args, **kwargs):
+        order_id = request.POST.get('order_id')
+        driver_id = request.POST.get('driver_id')
+        order = get_object_or_404(Order, order_id=order_id, vendor=request.user.vendor)
+
+        # Update order status to accepted
+        order.status = 'Accepted'
+        order.save()
+        payment = Payment.objects.get(order=order)
+        
+
+        # Assign driver and create delivery entry
+        if driver_id:
+            from .models import Driver, Delivery,Payment
+            driver = get_object_or_404(Driver, driver_id=driver_id, vendor=request.user.vendor)
+            driver.status = 'B'
+            driver.save()
+            delivery = Delivery.objects.get(order=order, payment=payment)
+            delivery.delivery_status = "In Progress"
+            delivery.driver = driver
+            delivery.save()
+        return redirect('vendor_orders')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        orders = Order.objects.filter(vendor=self.request.user.vendor_profile).order_by('-order_date')
+        completed_orders = orders.filter(is_complete=True)
+        pending_orders = orders.filter(is_complete=False)
+        active_refills = orders.filter(status='Delivered') 
+         # Monthly order analysis
+        monthly_orders = (
+            orders.annotate(month=TruncMonth('order_date'))
+                  .values('month')
+                  .annotate(count=Count('order_id'))
+                  .order_by('month')
+        )
+        monthly_data = {
+            item['month'].strftime('%b %Y'): item['count']
+            for item in monthly_orders
+        }
+
+        # Yearly order analysis
+        yearly_orders = (
+            orders.annotate(year=TruncYear('order_date'))
+                  .values('year')
+                  .annotate(count=Count('order_id'))
+                  .order_by('year')
+        )
+        yearly_data = {
+            item['year'].year: item['count']
+            for item in yearly_orders
+        }
+
+        # Last Delivery (most recent delivered order)
+        last_delivery = active_refills.order_by('-order_date').first()
+        context.update({
+            'page_name': 'order_list',
+            'list_name': 'order_list',
+            'completed_orders': completed_orders,
+            'pending_orders': pending_orders,
+            'active_refills': active_refills,
+            'total_orders': orders.count(),
+            'monthly_orders': monthly_orders,
+            'yearly_orders': yearly_orders,
+            'last_delivery': last_delivery,
+            'available_drivers': self.request.user.vendor_profile.drivers.filter(status='A'),
+        })
+        context['monthly_data_json'] = json.dumps(monthly_data)
+        context['yearly_data_json'] = json.dumps(yearly_data)
+        return context
