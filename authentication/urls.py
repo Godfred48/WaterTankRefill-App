@@ -14,7 +14,7 @@ urlpatterns = [
     path('signup/', SignUpView.as_view(), name= 'signup'),
     path('Logout/', LogoutView.as_view(), name = 'logout'),
     path('vendor_dashboard/', VendorDashboard.as_view(), name='vendor_dashboard'),
-    path('vendor/unboard_driver/', DriverOnboardingView.as_view(), name='onboard_drive'),
+    path('vendor/unboard_driver/', DriverOnboardingView.as_view(), name='onboard_driver'),
     #vendors
     path('customer/vendors/', Vendors.as_view(), name='vendors'),
     path('vendor/orders/', VendorViewOrders.as_view(), name='vendor_orders'),
