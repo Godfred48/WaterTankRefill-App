@@ -207,6 +207,7 @@ class Order(models.Model):
         max_length=20, choices=DELIVERY_STATUS, default='Pending'
     )
     is_complete = models.BooleanField(default=False)
+    delivery_location = models.CharField(max_length=200, null=True, blank=True)
     
 
     def __str__(self):
