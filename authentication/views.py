@@ -418,3 +418,37 @@ class VendorViewOrders(ListView):
         context['monthly_data_json'] = json.dumps(monthly_data)
         context['yearly_data_json'] = json.dumps(yearly_data)
         return context
+
+
+@method_decorator((login_required, vendor_required), name='dispatch')
+class VendorDashboard(View):
+    template_name = 'vendor/vendor_dashboard.html'
+    def get(self, request, *args, **kwargs):
+        
+        vendor = request.user.vendor_profile
+        orders = Order.objects.filter(vendor=vendor).order_by('-order_date')
+        completed_orders = orders.filter(is_complete=True)
+        pending_orders = orders.filter(is_complete=False)
+        active_refills = orders.filter(status='Delivered') 
+
+        # Monthly order analysis
+        monthly_orders = (
+            orders.annotate(month=TruncMonth('order_date'))
+                  .values('month')
+                  .annotate(count=Count('order_id'))
+                  .order_by('month')
+        )
+        monthly_data = {
+            item['month'].strftime('%b %Y'): item['count']
+            for item in monthly_orders
+        }
+
+        context = {
+            'orders': orders[:5],  # recent 5 orders
+            'completed_orders_count': completed_orders.count(),
+            'pending_orders_count': pending_orders.count(),
+            'active_refills_count': active_refills.count(),
+            'monthly_data_json': json.dumps(monthly_data),
+            
+        }
+        return render(request, self.template_name, context)
