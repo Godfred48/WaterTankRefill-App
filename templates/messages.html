@@ -1,0 +1,18 @@
+{% if messages %}
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      {% for message in messages %}
+        Swal.fire({
+          title: "{{ message.tags|capfirst }}",
+          text: "{{ message }}",
+          icon: "{% if 'success' in message.tags %}success{% elif 'error' in message.tags %}error{% elif 'warning' in message.tags %}warning{% else %}info{% endif %}",
+          confirmButtonColor: '#0d6efd',
+          timer: 3000,
+          timerProgressBar: true,
+          showConfirmButton: false
+        });
+      {% endfor %}
+    });
+  </script>
+{% endif %}
