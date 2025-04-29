@@ -16,6 +16,9 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Count
 from packages.decorators import vendor_required, customer_required, admin_required
 from django.utils.decorators import method_decorator
+from django.db.models import Count
+from django.db.models.functions import TruncMonth, TruncYear
+import json
 
 # Create your views here.
 def home(request):
@@ -263,11 +266,56 @@ class CustomerDashboard(View):
 @method_decorator((login_required, customer_required), name='dispatch')
 class CustomerViewOrders(ListView):
     model = Order
-    template_name = 'orders.html'
+    template_name = 'customer/orders.html'
     context_object_name = 'orders'
+
+    def get_queryset(self):
+        # Only fetch orders related to the logged-in customer
+        return Order.objects.filter(customer=self.request.user).order_by('-order_date')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['page_name'] = 'order_list'
-        context['list_name'] = 'order_list'
+        orders = Order.objects.filter(customer=self.request.user).order_by('-order_date')
+        completed_orders = orders.filter(is_complete=True)
+        pending_orders = orders.filter(is_complete=False)
+        active_refills = orders.filter(status='Delivered') 
+         # Monthly order analysis
+        monthly_orders = (
+            orders.annotate(month=TruncMonth('order_date'))
+                  .values('month')
+                  .annotate(count=Count('order_id'))
+                  .order_by('month')
+        )
+        monthly_data = {
+            item['month'].strftime('%b %Y'): item['count']
+            for item in monthly_orders
+        }
+
+        # Yearly order analysis
+        yearly_orders = (
+            orders.annotate(year=TruncYear('order_date'))
+                  .values('year')
+                  .annotate(count=Count('order_id'))
+                  .order_by('year')
+        )
+        yearly_data = {
+            item['year'].year: item['count']
+            for item in yearly_orders
+        }
+
+        # Last Delivery (most recent delivered order)
+        last_delivery = active_refills.order_by('-order_date').first()
+        context.update({
+            'page_name': 'order_list',
+            'list_name': 'order_list',
+            'completed_orders': completed_orders,
+            'pending_orders': pending_orders,
+            'active_refills': active_refills,
+            'total_orders': orders.count(),
+            'monthly_orders': monthly_orders,
+            'yearly_orders': yearly_orders,
+            'last_delivery': last_delivery,
+        })
+        context['monthly_data_json'] = json.dumps(monthly_data)
+        context['yearly_data_json'] = json.dumps(yearly_data)
         return context
