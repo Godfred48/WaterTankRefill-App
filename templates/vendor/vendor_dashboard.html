@@ -13,6 +13,11 @@
     .card {
       border: none;
       border-radius: 10px;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
     }
     .offcanvas-body a {
       color: #fff;
@@ -50,8 +55,17 @@
       }
       .sidebar-desktop a:hover {
         background-color: whitesmoke;
-        color:#0d6efd
+        color:#0d6efd;
       }
+    }
+    .fade-up {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.6s ease;
+    }
+    .fade-up.show {
+      opacity: 1;
+      transform: translateY(0);
     }
   </style>
 </head>
@@ -78,7 +92,7 @@
     <a href="{% url 'vendor_orders' %}"><i class="bi bi-truck me-2"></i> Orders</a>
     <a href="#"><i class="bi bi-person me-2"></i> Profile</a>
     <a href="#"><i class="bi bi-gear me-2"></i> Settings</a>
-    <a href="{% url 'drive_onboard %'}"><i class="bi bi-person-add"></i> Onboard Driver</a>
+    <a href="#"><i class="bi bi-person-add"></i> Onboard Driver</a>
     <a href="#"><i class="bi bi-person-lines-fill"></i> View Driver</a>
     <a href="#"><i class="bi bi-credit-card-fill"></i> Payment</a>
     <a href="#"><i class="bi bi-credit-card-fill"></i> Track Delivery</a>
@@ -89,11 +103,11 @@
 <!-- Sidebar for Desktop -->
 <div class="sidebar-desktop d-none d-md-block">
   <h4 class="mb-4">Tank Fill</h4>
-  <a href="customer_dashboard.html"><i class="bi bi-house-door me-2"></i> Dashboard</a>
+  <a href="{% url 'customer_dashboard' %}"><i class="bi bi-house-door me-2"></i> Dashboard</a>
   <a href="{% url 'vendor_orders' %}"><i class="bi bi-truck me-2"></i> Orders</a>
   <a href="#"><i class="bi bi-person me-2"></i> Profile</a>
   <a href="#"><i class="bi bi-gear me-2"></i> Settings</a>
-  <a href="{% url 'drive_onboard %'}"><i class="bi bi-person-add"></i> Onboard Driver</a>
+  <a href="#"><i class="bi bi-person-add"></i> Onboard Driver</a>
   <a href="#"><i class="bi bi-person-lines-fill"></i> View Driver</a>
   <a href="#"><i class="bi bi-credit-card-fill"></i> Payment</a>
   <a href="#"><i class="bi bi-credit-card-fill"></i> Track Delivery</a>
@@ -102,45 +116,137 @@
 
 <!-- Main Content Area -->
 <div class="main-content">
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="h4">Welcome back, User</h2>
+  <div class="d-flex justify-content-between align-items-center mb-4 fade-up">
+    <h2 class="h4">Welcome back, {{ request.user.get_full_name }}</h2>
     <span class="text-muted">Today: <span id="date"></span></span>
   </div>
 
-  <div class="row g-3 mb-4">
-    <div class="col-sm-6 col-lg-4">
+  <!-- Summary Cards -->
+  <div class="row g-3 mb-4 fade-up">
+    <div class="col-sm-6 col-lg-3">
       <div class="card shadow-sm p-3">
         <h6 class="text-muted">Total Orders</h6>
-        <h3>42</h3>
+        <h3 data-count="{{ completed_orders_count|add:pending_orders_count }}">0</h3>
       </div>
     </div>
-    <div class="col-sm-6 col-lg-4">
+    <div class="col-sm-6 col-lg-3">
+      <div class="card shadow-sm p-3">
+        <h6 class="text-muted">Completed Orders</h6>
+        <h3 data-count="{{ completed_orders_count }}">0</h3>
+      </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+      <div class="card shadow-sm p-3">
+        <h6 class="text-muted">Pending Orders</h6>
+        <h3 data-count="{{ pending_orders_count }}">0</h3>
+      </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
       <div class="card shadow-sm p-3">
         <h6 class="text-muted">Active Refills</h6>
-        <h3>5</h3>
-      </div>
-    </div>
-    <div class="col-sm-6 col-lg-4">
-      <div class="card shadow-sm p-3">
-        <h6 class="text-muted">Pending Deliveries</h6>
-        <h3>2</h3>
+        <h3 data-count="{{ active_refills_count }}">0</h3>
       </div>
     </div>
   </div>
 
-  <div class="card shadow-sm p-3">
-    <h5>Recent Activity</h5>
-    <ul class="list-group list-group-flush">
-      <li class="list-group-item">You placed an order for a horizontal tank refill.</li>
-      <li class="list-group-item">Refill completed for vertical tank - 10am, Jul 3</li>
-      <li class="list-group-item">New vendor added to your area.</li>
-    </ul>
+  <!-- Order Trend Chart -->
+  <div class="card shadow-sm p-4 mb-4 fade-up">
+    <h5 class="mb-3">Monthly Order Trends</h5>
+    <canvas id="orderChart" height="100"></canvas>
+  </div>
+
+  <!-- Recent Orders -->
+  <div class="card shadow-sm p-4 fade-up">
+    <h5 class="mb-3">Recent Orders</h5>
+    <table class="table table-hover">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Order ID</th>
+          <th>Status</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for order in orders %}
+        <tr>
+          <td>{{ forloop.counter }}</td>
+          <td>{{ order.order_id }}</td>
+          <td>{{ order.status }}</td>
+          <td>{{ order.order_date|date:"M d, Y" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4">No recent orders found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
 </div>
 
-<script>
-  document.getElementById('date').textContent = new Date().toDateString();
-</script>
+<!-- Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+  // Chart rendering
+  const ctx = document.getElementById('orderChart').getContext('2d');
+  const monthlyData = {{ monthly_data_json|safe }};
+  const chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: Object.keys(monthlyData),
+      datasets: [{
+        label: 'Orders',
+        data: Object.values(monthlyData),
+        borderColor: '#0d6efd',
+        backgroundColor: 'rgba(13, 110, 253, 0.1)',
+        fill: true,
+        tension: 0.3
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        y: { beginAtZero: true }
+      }
+    }
+  });
+
+  // Count-up animation for stats
+  function animateCount(el, target) {
+    let count = 0;
+    const speed = 20;
+    const increment = target / 50;
+    const updateCount = () => {
+      count += increment;
+      if (count < target) {
+        el.innerText = Math.floor(count);
+        requestAnimationFrame(updateCount);
+      } else {
+        el.innerText = target;
+      }
+    };
+    updateCount();
+  }
+
+  // Fade-up animation and stat counters on load
+  document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll(".fade-up").forEach((el, i) => {
+      setTimeout(() => el.classList.add("show"), i * 150);
+    });
+
+    document.querySelectorAll("[data-count]").forEach(el => {
+      const target = parseInt(el.getAttribute("data-count"));
+      if (!isNaN(target)) animateCount(el, target);
+    });
+
+    // Display current date
+    document.getElementById("date").textContent = new Date().toDateString();
+  });
+</script>
+
 </body>
 </html>
