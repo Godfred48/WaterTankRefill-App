@@ -230,21 +230,33 @@ class Vendors(View):
         return render(request, self.template_name,context)
         
 
-    def post(self,request,*args,**kwargs):
-        form = OrderForm(request.POST)
-        vendors = Vendor.objects.all()
-        if form.is_valid():
-            order = form.save(commit=False)
-            order.customer = request.user  # Force the logged-in user
-            order.save()
-            messages.success(request, 'Your order has been placed successfully!')
-            return redirect('customer_dashboard')
-        else:
-            messages.error(request, 'Please correct the errors below.')
-        context = {'vendors': vendors, 'form': form}
-        return render(request, self.template_name,context)
+    def post(self, request, *args, **kwargs):
+        vendor_id = request.POST.get('vendor_id')
+        delivery_location = request.POST.get('delivery_location')
+        liters = request.POST.get('liters')
+        total_price = request.POST.get('total_price')
+        payment_method = request.POST.get('payment_method')
+
+        vendor = Vendor.objects.get(pk=vendor_id)
+
+        order = Order.objects.create(
+        customer=request.user,
+        vendor=vendor,
+        delivery_location=delivery_location,
+        litres=liters,
+        payment_method=payment_method,
+      )
+        payment = Payment.objects.create(
+        order=order,amount=order.get_total_price(),payment_method=order.payment_method,payment_status=order.status,transaction_id="Cash"
+       )
+        delivery = Delivery.objects.create(order=order, payment=payment,is_deleivered=False,delivery_status="Pending")
+
+        messages.success(request, 'Your order has been placed successfully!')
+        return redirect('customer_dashboard')
 
 
+
+@method_decorator((login_required, customer_required), name='dispatch')
 class CustomerDashboard(View):
     template_name = 'customer/customer_dashboard.html'
     def get(self, request,*args,**kwargs):
