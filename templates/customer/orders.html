@@ -186,7 +186,7 @@
             {% for order in orders %}
               <tr>
                 <td>{{ order.order_date|date:"M d, Y" }}</td>
-                <td>{{ order.vendor.get_full_name }}</td>
+                <td>{{ order.vendor.user.get_full_name }}</td>
                 <td>{{ order.get_tank_type_display }}</td>
                 <td>{{ order.litres }}</td>
                 <td>GHS {{ order.get_total_price|floatformat:2 }}</td>
