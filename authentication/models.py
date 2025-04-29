@@ -13,12 +13,12 @@ from django.core.validators import RegexValidator
 from django.utils import timezone
 from django.contrib.auth.base_user import BaseUserManager
 from django.core.exceptions import ValidationError
-
+from decimal import Decimal
 
 GENDER_CHOICES = [('Male', 'Male'), ('Female', 'Female')]
 STATUS_CHOICES = [('A', 'Available'), ('B', 'Busy')]
 TANK_STATUS = [('Available', 'Available'), ('Unavailable', 'Unavailable')]
-DELIVERY_STATUS = [('Pending', 'Pending'), ('En Route', 'En Route'), ('Delivered', 'Delivered')]
+DELIVERY_STATUS = [('Pending', 'Pending'), ('In Progress', 'In Progress'), ('Delivered', 'Delivered')]
 PAYMENT_METHODS = [('Momo On Delivery', 'Momo On Delivery'),  ('Cash On Delivery', 'Cash On Delivery')]
 DESCIPLINE_CHOICES = [('Active', 'Active'), ('Suspended', 'Suspended')]
 TANK_CHOICES = [('Horizontal Water Tank', 'Horizontal Water Tank'), ('Vertical Water Tank', 'Vertical Water Tank'), ('IBC Water Tank', 'IBC Water Tank')]
@@ -213,10 +213,13 @@ class Order(models.Model):
         return f"Order #{self.order_id} - {self.customer.full_name} - {self.status}"
 
     def get_total_price(self):
-        if self.vendor.price_per_liter:
-            return self.vendor.price_per_liter * self.litres
-        else:
-            return 0
+
+        try:
+           litres = Decimal(self.litres)  # safely convert litres to Decimal
+        except Exception:
+            litres = Decimal(0)
+
+        return litres * self.vendor.price_per_liter
 
 
 class Payment(models.Model):
