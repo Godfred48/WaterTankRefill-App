@@ -19,6 +19,8 @@ from django.utils.decorators import method_decorator
 from django.db.models import Count
 from django.db.models.functions import TruncMonth, TruncYear
 import json
+from django.shortcuts import get_object_or_404
+
 
 # Create your views here.
 def home(request):
@@ -352,21 +354,18 @@ class VendorViewOrders(ListView):
     def post(self, request, *args, **kwargs):
         order_id = request.POST.get('order_id')
         driver_id = request.POST.get('driver_id')
-        order = get_object_or_404(Order, order_id=order_id, vendor=request.user.vendor)
+        order = get_object_or_404(Order, order_id=order_id, vendor=request.user.vendor_profile)
 
         # Update order status to accepted
         order.status = 'Accepted'
         order.save()
-        payment = Payment.objects.get(order=order)
-        
-
         # Assign driver and create delivery entry
         if driver_id:
             from .models import Driver, Delivery,Payment
-            driver = get_object_or_404(Driver, driver_id=driver_id, vendor=request.user.vendor)
-            driver.status = 'B'
+            driver = get_object_or_404(Driver, driver_id=driver_id, vendor=request.user.vendor_profile)
+            driver.status = 'A'
             driver.save()
-            delivery = Delivery.objects.get(order=order, payment=payment)
+            delivery = Delivery.objects.get(order=order)
             delivery.delivery_status = "In Progress"
             delivery.driver = driver
             delivery.save()
