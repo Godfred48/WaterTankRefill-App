@@ -236,6 +236,7 @@ class Vendors(View):
         liters = request.POST.get('liters')
         total_price = request.POST.get('total_price')
         payment_method = request.POST.get('payment_method')
+        tank_type = request.POST.get('tank_choices')
 
         vendor = Vendor.objects.get(pk=vendor_id)
 
@@ -245,6 +246,7 @@ class Vendors(View):
         delivery_location=delivery_location,
         litres=liters,
         payment_method=payment_method,
+        tank_type=tank_type
       )
         payment = Payment.objects.create(
         order=order,amount=order.get_total_price(),payment_method=order.payment_method,payment_status=order.status,transaction_id="Cash"
