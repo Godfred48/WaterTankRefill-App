@@ -61,6 +61,9 @@
           {% if request.user.is_customer %}
           <a href="{% url 'customer_dashboard' %}" target="_blank" class="btn btn-outline-primary">Customer dashboard</a>
           {% endif %}
+          {% if request.user.is_driver %}
+          <a href="{% url 'driver_dashboard' %}" target="_blank" class="btn btn-outline-primary">Driver dashboard</a>
+          {% endif %}
           {% if request.user.is_admin %}
           <a href="{% url 'customer_dashboard' %}" target="_blank" class="btn btn-outline-primary">Admin dashboard</a>
           {% endif %}
