@@ -14,12 +14,14 @@ from .forms import *
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count
-from packages.decorators import vendor_required, customer_required, admin_required
+from packages.decorators import vendor_required, customer_required, admin_required, driver_required
 from django.utils.decorators import method_decorator
 from django.db.models import Count
 from django.db.models.functions import TruncMonth, TruncYear
 import json
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
+from django.views.generic import TemplateView
 
 
 # Create your views here.
@@ -453,3 +455,80 @@ class VendorDashboard(View):
             
         }
         return render(request, self.template_name, context)
+
+
+
+
+@method_decorator((login_required, driver_required), name='dispatch')
+class DriverDashboard(View):
+    template_name = 'driver/driver_dashboard.html'
+
+    def get(self, request, *args, **kwargs):
+        driver = request.user.driver_profile
+        deliveries = Delivery.objects.filter(driver=driver).select_related('order', 'order__customer').order_by('-delivery_date')
+
+        completed_deliveries = deliveries.filter(is_deleivered=True)
+        pending_deliveries = deliveries.filter(is_deleivered=False)
+
+        # Monthly delivery analysis
+        monthly_deliveries = (
+            deliveries.annotate(month=TruncMonth('delivery_date'))
+                      .values('month')
+                      .annotate(count=Count('delivery_id'))
+                      .order_by('month')
+        )
+
+        monthly_data = {
+            item['month'].strftime('%b %Y'): item['count']
+            for item in monthly_deliveries
+        }
+
+        # Optional alert logic: count of pending deliveries that are overdue or flagged
+        alerts_count = pending_deliveries.filter(delivery_date__lt=timezone.now()).count()
+
+        context = {
+            'total_deliveries': deliveries.count(),
+            'completed_deliveries': completed_deliveries.count(),
+            'pending_deliveries': pending_deliveries.count(),
+            'alerts_count': alerts_count,
+            'monthly_data_json': json.dumps(monthly_data),
+            'deliveries': deliveries[:5],
+        }
+        return render(request, self.template_name, context)
+
+
+
+
+@method_decorator((login_required, driver_required), name='dispatch')
+class DriverProfileView(TemplateView):
+    template_name = 'driver/driver_profile.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['driver'] = self.request.user.driver_profile
+        return context
+
+
+
+@method_decorator((login_required, driver_required), name='dispatch')
+class AssignedDeliveriesView(ListView):
+    model = Delivery
+    template_name = 'driver/assigned_deliveries.html'
+    context_object_name = 'deliveries'
+
+    def get_queryset(self):
+        driver = self.request.user.driver_profile
+        return Delivery.objects.filter(driver=driver, is_deleivered=False).select_related('order').order_by('-delivery_date')
+
+
+
+@method_decorator((login_required, driver_required), name='dispatch')
+class DeliveryHistoryView(ListView):
+    model = Delivery
+    template_name = 'driver/delivery_history.html'
+    context_object_name = 'deliveries'
+    paginate_by = 10  # Optional
+
+    def get_queryset(self):
+        driver = self.request.user.driver_profile
+        return Delivery.objects.filter(driver=driver, is_deleivered=True).select_related('order').order_by('-delivery_date')
