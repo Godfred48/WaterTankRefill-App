@@ -23,6 +23,7 @@ urlpatterns = [
     # driver dashboard
     path('driver_dashboard/', DriverDashboard.as_view(), name='driver_dashboard'),
     path('driver/assigned/', AssignedDeliveriesView.as_view(), name='assigned_deliveries'),
+    path('driver/deliveries/<str:delivery_id>/mark_delivered/', views.MarkDeliveryAsDeliveredView.as_view(), name='mark_delivery_delivered'),
     path('driver/profile/', DriverProfileView.as_view(), name='driver_profile'),
     path('driver/history/', DeliveryHistoryView.as_view(), name='delivery_history'),
 
