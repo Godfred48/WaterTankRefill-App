@@ -532,3 +532,19 @@ class DeliveryHistoryView(ListView):
     def get_queryset(self):
         driver = self.request.user.driver_profile
         return Delivery.objects.filter(driver=driver, is_deleivered=True).select_related('order').order_by('-delivery_date')
+
+
+
+@method_decorator((login_required, driver_required), name='dispatch')
+class MarkDeliveryAsDeliveredView(View):
+    def post(self, request, delivery_id):
+        try:
+            delivery = get_object_or_404(Delivery, delivery_id=delivery_id, driver=request.user.driver_profile, is_deleivered=False)
+            delivery.is_deleivered = True
+            delivery.delivery_status = 'Delivered' 
+            delivery.save()
+            return JsonResponse({'status': 'success', 'message': 'Delivery status updated successfully.'})
+        except Delivery.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Invalid delivery ID or delivery already marked as delivered.'}, status=404)
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': f'An error occurred: {str(e)}'}, status=500)
