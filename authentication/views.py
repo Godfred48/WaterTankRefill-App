@@ -585,14 +585,42 @@ class CustomerProfileUpdateView(LoginRequiredMixin,UpdateView):
 @method_decorator((login_required, customer_required), name='dispatch')
 class CustomerProfileDetailView(LoginRequiredMixin,DetailView):
     model = User
-    template_name = 'customers/customer_detail.html'
+    template_name = 'customer/customer_detail.html'
     context_object_name = 'customer'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['page_name'] = 'customer_profile'
-        context['list_name'] = 'customers'
+        customer = self.request.user
+        orders = customer.orders.select_related('vendor').all()
+        payments = Payment.objects.filter(order__in=orders).select_related('order')
+        deliveries = Delivery.objects.filter(order__in=orders).select_related('order', 'driver')
+        reviews = Review.objects.filter(customer=customer).select_related('vendor')
+
+        total_orders = orders.count()
+        completed_orders = orders.filter(is_complete=True).count()
+        pending_orders = orders.filter(status='Pending').count()
+        total_payments = payments.count()
+        total_reviews = reviews.count()
+        total_spent = sum(payment.amount for payment in payments)
+        context.update({
+            'page_name': 'customer_profile',
+            'list_name': 'customers',
+            'orders': orders,
+            'payments': payments,
+            'deliveries': deliveries,
+            'reviews': reviews,
+            'analytics': {
+                'total_orders': total_orders,
+                'completed_orders': completed_orders,
+                'pending_orders': pending_orders,
+                'total_payments': total_payments,
+                'total_reviews': total_reviews,
+                      }
+        })
         return context
 
     def get_queryset(self):
         return User.objects.filter(is_customer=True)
+
+    def get_object(self):
+        return get_object_or_404(User, pk=self.kwargs['user_id'])
