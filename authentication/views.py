@@ -22,6 +22,7 @@ import json
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.views.generic import TemplateView
+from django.contrib.auth.mixins import LoginRequiredMixin
 
 
 # Create your views here.
@@ -548,3 +549,50 @@ class MarkDeliveryAsDeliveredView(View):
             return JsonResponse({'status': 'error', 'message': 'Invalid delivery ID or delivery already marked as delivered.'}, status=404)
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': f'An error occurred: {str(e)}'}, status=500)
+
+
+
+@method_decorator((login_required, customer_required), name='dispatch')
+class CustomerProfileView(LoginRequiredMixin,TemplateView):
+    template_name = 'customer/customer_profile.html'
+
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['customer'] = self.request.user
+        return context
+
+
+
+@method_decorator((login_required, customer_required), name='dispatch')
+class CustomerProfileUpdateView(LoginRequiredMixin,UpdateView):
+    model = User
+    template_name = 'customer/customer_profile_update.html'
+    fields = ['full_name', 'email', 'address', 'gender', 'photo']
+    success_url = reverse_lazy('customer_profile')
+
+    def get_object(self):
+        return self.request.user
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_name'] = 'customer_profile'
+        context['list_name'] = 'customers'
+        return context
+
+
+
+@method_decorator((login_required, customer_required), name='dispatch')
+class CustomerProfileDetailView(LoginRequiredMixin,DetailView):
+    model = User
+    template_name = 'customers/customer_detail.html'
+    context_object_name = 'customer'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_name'] = 'customer_profile'
+        context['list_name'] = 'customers'
+        return context
+
+    def get_queryset(self):
+        return User.objects.filter(is_customer=True)
