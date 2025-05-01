@@ -20,6 +20,8 @@ urlpatterns = [
     path('vendor/orders/', VendorViewOrders.as_view(), name='vendor_orders'),
     #customer orders
     path('customer/orders/', CustomerViewOrders.as_view(), name='customer_orders'),
+    path('customer/profile/', CustomerProfileView.as_view(), name='customer_profile'),
+    path('customer/profile/update/', CustomerProfileUpdateView.as_view(), name='customer_profile_update'),
     # driver dashboard
     path('driver_dashboard/', DriverDashboard.as_view(), name='driver_dashboard'),
     path('driver/assigned/', AssignedDeliveriesView.as_view(), name='assigned_deliveries'),
