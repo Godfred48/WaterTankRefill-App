@@ -650,7 +650,7 @@ class VendorProfileDetailView(LoginRequiredMixin, DetailView):
         orders = vendor.orders.select_related('customer').all()
         payments = Payment.objects.filter(order__vendor=vendor).select_related('order')
         deliveries = Delivery.objects.filter(order__vendor=vendor).select_related('order', 'driver')
-        drivers = vendor.drivers.select_related('user').all()
+        drivers = Driver.objects.filter(vendor=vendor)
         tanks = vendor.tanks.all()
         reviews = Review.objects.filter(vendor=vendor).select_related('customer')
 
@@ -685,3 +685,81 @@ class VendorProfileDetailView(LoginRequiredMixin, DetailView):
 
     def get_object(self):
         return get_object_or_404(User, pk=self.kwargs['user_id'])
+
+
+
+@method_decorator((login_required, vendor_required), name='dispatch')
+class VendorViewDrivers(View):
+    template_name = 'vendor/vendor_drivers.html'
+    context_object_name = 'drivers'
+
+    def get(self, request):
+        try:
+            vendor = request.user.vendor_profile
+            drivers = Driver.objects.filter(vendor=vendor).select_related('user')
+
+            # Get delivery counts for the current month for each driver
+            today = timezone.now()
+            start_of_month = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            end_of_month = (start_of_month.replace(month=start_of_month.month + 1) - timezone.timedelta(days=1)) if start_of_month.month < 12 else today.replace(year=today.year + 1, month=1, day=1, hour=0, minute=0, second=0, microsecond=0) - timezone.timedelta(days=1)
+
+            driver_delivery_counts = Delivery.objects.filter(
+                driver__vendor=vendor,
+                is_deleivered=True,
+                delivery_date__gte=start_of_month,
+                delivery_date__lte=end_of_month
+            ).values('driver').annotate(completed_deliveries=Count('driver')).order_by('driver')
+
+            # Create a dictionary to easily access delivery counts per driver
+            driver_delivery_map = {item['driver']: item['completed_deliveries'] for item in driver_delivery_counts}
+
+            # Enhance the driver objects with their delivery counts and progress percentage
+            enhanced_drivers = []
+            max_deliveries = 10  # Define your maximum for the progress bar
+            for driver in drivers:
+                completed_count = driver_delivery_map.get(driver.driver_id, 0)
+                progress_percentage = (completed_count * 100) / max_deliveries if max_deliveries > 0 else 0
+                enhanced_drivers.append({
+                    'driver': driver,
+                    'completed_deliveries': completed_count,
+                    'progress_percentage': progress_percentage
+                })
+
+            context = {
+                self.context_object_name: enhanced_drivers,
+                'vendor': vendor,
+                'page_name': 'vendor_drivers',
+                'list_name': 'drivers',
+                'max_deliveries': max_deliveries,  # Optional: Pass max deliveries to the template
+            }
+            return render(request, self.template_name, context)
+        except Vendor.DoesNotExist:
+            messages.info(request, "Vendor does not exist.")
+            return redirect(request.META.get("HTTP_REFERER", '/'))
+        except Exception as e:
+            print("An error occurred:", e)
+            messages.warning(request, f"An error occurred: {e}")
+            return redirect(request.META.get("HTTP_REFERER", '/'))
+
+
+
+
+@method_decorator((login_required, vendor_required), name='dispatch')
+class VendorProfileView(View):
+    template_name = 'vendor/vendor_profile.html'
+
+    def get(self, request):
+        try:
+            vendor = request.user.vendor_profile
+            context = {
+                'vendor': vendor,
+                'page_name': 'vendor_profile',
+            }
+            return render(request, self.template_name, context)
+        except Vendor.DoesNotExist:
+            messages.error(request, "Your vendor profile could not be found.")
+            return redirect('vendor_dashboard') # Redirect to dashboard or appropriate page
+        except Exception as e:
+            print(e)
+            messages.error(request, f"An error occurred while fetching your profile: {e}")
+            return redirect('vendor_dashboard') # Redirect to dashboard or appropriate page
