@@ -236,6 +236,11 @@ class Payment(models.Model):
     def __str__(self):
         return f"Payment #{self.payment_id} - Order #{self.order.order_id} - {self.payment_status}"
 
+    @staticmethod
+    def total_payments(self):
+        total =  Payment.objects.aggregate(total_balance=Sum('amount'))['total_balance']
+        return total or 0.00
+
 
 class Delivery(models.Model):
     delivery_id = UniqueIDField(primary_key=True, editable=False, unique=True)
