@@ -31,6 +31,8 @@ urlpatterns = [
     path('customer/profile/', CustomerProfileView.as_view(), name='customer_profile'),
     path('customer/profile/update/', CustomerProfileUpdateView.as_view(), name='customer_profile_update'),
     path('profile/<str:user_id>/', CustomerProfileDetailView.as_view(), name='customer_profile_detail'),
+    path('delivery-tracking/<str:delivery_id>/', views.test_customer_delivery_tracking, name='customer_delivery_tracking'),
+    path('second-delivery-tracking/<str:delivery_id>/', views.test_driver_delivery_tracking, name='driver_delivery_tracking'),
     # driver dashboard
     path('driver_dashboard/', DriverDashboard.as_view(), name='driver_dashboard'),
     path('driver/assigned/', AssignedDeliveriesView.as_view(), name='assigned_deliveries'),
