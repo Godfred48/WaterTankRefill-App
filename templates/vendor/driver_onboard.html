@@ -2,92 +2,324 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Onboard Driver</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <style>
-    .form-control:invalid:focus {
-      border-color: red;
-      box-shadow: 0 0 0 0.2rem rgba(255, 0, 0, 0.25);
-    }
-    .icon-title {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-      font-weight: 600;
-    }
-    .card {
-      border-radius: 1rem;
-    }
-    .errorlist {
-      color: red;
-      list-style: none;
-      padding-left: 0;
-      font-size: 0.9rem;
-    }
-  </style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Onboard Driver</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #e0f7fa, #c5e1a5);
+            animation: gradientAnimation 15s ease infinite;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        @keyframes gradientAnimation {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .form-container {
+            background-color: #fff;
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            padding: 2rem 3rem;
+            max-width: 500px;
+            width: 100%;
+            animation: scaleIn 0.5s ease-in-out;
+        }
+
+        @keyframes scaleIn {
+            0% { transform: scale(0.95); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .icon-banner {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            opacity: 0;
+            animation: fadeInDown 0.6s ease-out 0.2s forwards;
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .icon-banner i {
+            font-size: 4rem;
+            color: #2979ff;
+            animation: pulse 1.5s infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.05); }
+        }
+
+        .form-title {
+            text-align: center;
+            color: #333;
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+            opacity: 0;
+            animation: fadeInUp 0.6s ease-out 0.3s forwards;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .progress-chart-container {
+            background-color: #f0f0f0;
+            border-radius: 0.5rem;
+            height: 1rem;
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+            opacity: 0;
+            animation: slideInRight 0.5s ease-out 0.4s forwards;
+        }
+
+        @keyframes slideInRight {
+            from { transform: translateX(-20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .progress-chart {
+            background-color: #4CAF50; /* Success color */
+            height: 100%;
+            width: 0%; /* Initial width */
+            border-radius: 0.5rem;
+            transition: width 0.3s ease-in-out;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+            position: relative;
+            opacity: 0;
+            animation: fadeIn 0.5s ease-out forwards;
+            animation-delay: calc(0.4s + var(--field-index) * 0.1s);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #2979ff;
+            box-shadow: 0 0 5px rgba(41, 121, 255, 0.3);
+        }
+
+        .form-label {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            color: #888;
+            font-size: 1rem;
+            pointer-events: none;
+            transition: all 0.3s ease;
+            background-color: #fff; /* For better readability when focused */
+            padding: 0 0.2rem;
+        }
+
+        .form-input:focus + .form-label,
+        .form-input:not(:placeholder-shown) + .form-label {
+            top: -0.5rem;
+            left: 0.8rem;
+            font-size: 0.8rem;
+            color: #2979ff;
+            background-color: #fff;
+        }
+
+        .password-toggle {
+            position: absolute;
+            top: 50%;
+            right: 1rem;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: #aaa;
+        }
+
+        .errorlist {
+            color: #f44336;
+            font-size: 0.9rem;
+            list-style: none;
+            padding-left: 0;
+            margin-top: 0.2rem;
+        }
+
+        .submit-button {
+            background-color: #2979ff;
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            cursor: pointer;
+            width: 100%;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+        }
+
+        .submit-button:hover {
+            background-color: #1e60c9;
+            transform: translateY(-2px);
+        }
+
+        .ready-to-submit {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            animation: fadeInOut 3s ease-in-out forwards;
+        }
+
+        .ready-to-submit i {
+            font-size: 3rem;
+            margin-bottom: 0.5rem;
+            color: #4CAF50;
+        }
+
+        @keyframes fadeInOut {
+            0% { opacity: 0; visibility: hidden; transform: translate(-50%, -60%); }
+            20% { opacity: 1; visibility: visible; transform: translate(-50%, -50%); }
+            80% { opacity: 1; visibility: visible; transform: translate(-50%, -50%); }
+            100% { opacity: 0; visibility: hidden; transform: translate(-50%, -40%); }
+        }
+    </style>
 </head>
-<body class="bg-light d-flex align-items-center justify-content-center" style="min-height: 100vh;">
+<body>
+    <div class="form-container">
+        <div class="icon-banner">
+            <i class="fas fa-steering-wheel"></i>
+        </div>
+        <h2 class="form-title">
+            <i class="fas fa-user-plus text-primary me-1"></i> Driver Onboarding
+        </h2>
 
-  <div class="card p-4 shadow-lg" style="width: 100%; max-width: 500px;">
-    <h3 class="text-center mb-4 icon-title">
-      <i class="fas fa-user-plus text-primary"></i> Onboard Driver
-    </h3>
+        <div class="progress-chart-container">
+            <div class="progress-chart" id="progressChart"></div>
+        </div>
 
-    <form method="POST" novalidate>
-      {% csrf_token %}
-      {{ form.non_field_errors }}
+        <form method="POST" novalidate id="onboardingForm">
+            {% csrf_token %}
+            {{ form.non_field_errors }}
 
-      <div class="mb-3">
-        <label class="form-label">Full Name</label>
-        {{ form.full_name }}
-        {{ form.full_name.errors }}
-      </div>
+            {% for field in form.visible_fields %}
+                <div class="form-group" style="--field-index: {{ forloop.counter0 }};">
+                    {{ field }}
+                    <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                    {{ field.errors }}
+                    {% if field.name == 'password' or field.name == 'confirm_password' %}
+                        <i class="fas fa-eye password-toggle" onclick="togglePasswordVisibility(this, '{{ field.id_for_label }}')"></i>
+                    {% endif %}
+                </div>
+            {% endfor %}
 
-      <div class="mb-3">
-        <label class="form-label">Email</label>
-        {{ form.email }}
-        {{ form.email.errors }}
-      </div>
+            <button type="submit" class="submit-button" id="submitButton" disabled>
+                <i class="fas fa-paper-plane me-2"></i> Submit
+            </button>
+        </form>
 
-      <div class="mb-3">
-        <label class="form-label">Phone Number</label>
-        {{ form.phone_number }}
-        {{ form.phone_number.errors }}
-      </div>
+        <div class="ready-to-submit" id="readySubmitPopup">
+            <i class="fas fa-check-circle"></i>
+            <div>Ready to Submit!</div>
+        </div>
+    </div>
 
-      <div class="mb-3">
-        <label class="form-label">Address</label>
-        {{ form.address }}
-        {{ form.address.errors }}
-      </div>
+    <script>
+        function togglePasswordVisibility(icon, inputId) {
+            const input = document.getElementById(inputId);
+            if (input.type === "password") {
+                input.type = "text";
+                icon.classList.remove("fa-eye");
+                icon.classList.add("fa-eye-slash");
+            } else {
+                input.type = "password";
+                icon.classList.remove("fa-eye-slash");
+                icon.classList.add("fa-eye");
+            }
+        }
 
-      <div class="mb-3">
-        <label class="form-label">Gender</label>
-        {{ form.gender }}
-        {{ form.gender.errors }}
-      </div>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('onboardingForm');
+            const progressChart = document.getElementById('progressChart');
+            const submitButton = document.getElementById('submitButton');
+            const readySubmitPopup = document.getElementById('readySubmitPopup');
+            const fieldsToTrack = form.querySelectorAll('input[type="text"], input[type="email"], input[type="password"]'); // Adjust as needed
 
-      <div class="mb-3">
-        <label class="form-label">License Number</label>
-        {{ form.license_number }}
-        {{ form.license_number.errors }}
-      </div>
+            function updateProgressBar() {
+                const filledFields = Array.from(fieldsToTrack).filter(input => input.value.trim() !== '');
+                const progress = (filledFields.length / fieldsToTrack.length) * 100;
+                progressChart.style.width = `${progress}%`;
 
-      <div class="mb-3">
-        <label class="form-label">Vehicle Type</label>
-        {{ form.vehicle_type }}
-        {{ form.vehicle_type.errors }}
-      </div>
+                // Check if all required fields are filled
+                if (filledFields.length === fieldsToTrack.length) {
+                    submitButton.removeAttribute('disabled');
+                    readySubmitPopup.classList.add('show'); // Trigger the animation
+                    setTimeout(() => {
+                        readySubmitPopup.classList.remove('show');
+                    }, 3000); // Duration of the popup
+                } else {
+                    submitButton.setAttribute('disabled', 'true');
+                    readySubmitPopup.classList.remove('show'); // Ensure it's hidden if not ready
+                }
+            }
 
-      <button type="submit" class="btn btn-primary w-100 mt-3">Submit</button>
-    </form>
-  </div>
+            fieldsToTrack.forEach(input => {
+                input.addEventListener('input', updateProgressBar);
+                input.addEventListener('blur', updateProgressBar);
+            });
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
-  {% include 'messages.html' %}
+            // Initial update
+            updateProgressBar();
+
+            // Add placeholder functionality
+            const formInputs = document.querySelectorAll('.form-input');
+            formInputs.forEach(input => {
+                if (!input.value) {
+                    input.placeholder = '';
+                }
+                input.addEventListener('focus', () => {
+                    input.placeholder = '';
+                });
+                input.addEventListener('blur', () => {
+                    if (!input.value) {
+                        input.placeholder = '';
+                    }
+                });
+            });
+        });
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    {% include 'messages.html' %}
 </body>
 </html>
