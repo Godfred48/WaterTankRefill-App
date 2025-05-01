@@ -60,7 +60,7 @@ TANK_SIZES = {
 }
 
 
-PAYMENT_STATUS = [('Received', 'Received'),  ('Pending', 'Pending')]
+PAYMENT_STATUS = [('Received', 'Received'),  ('Pending', 'Pending'),('Pending Confirmation', 'Pending, Confirmation')]
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, phone_number, email=None, password=None, **extra_fields):
