@@ -1043,3 +1043,50 @@ class DriverDeliveryListView(View):
             'page_name': 'customer_deliveries',
         }
         return render(request, self.template_name, context)
+
+
+
+
+from django.shortcuts import render, get_object_or_404
+from .models import Delivery  # Import your Delivery model
+from django.contrib.auth.decorators import login_required
+
+@login_required
+def test_customer_delivery_tracking(request, delivery_id):
+    """
+    View function to display the delivery tracking page for a customer.
+    """
+    try:
+        delivery = Delivery.objects.get(delivery_id=delivery_id)  # Fetch the Delivery object
+    except Delivery.DoesNotExist:
+        #  Handle the case where the delivery_id is invalid
+        #  You might want to display a user-friendly error message
+        return render(request, 'customer/delivery_not_found.html', {'delivery_id': delivery_id}, status=404)
+
+    # Check if the current user is the customer for this delivery
+    if delivery.order.customer != request.user:
+        return render(request, 'customer/delivery_access_denied.html', {'delivery_id': delivery_id}, status=403)
+
+    context = {
+        'delivery': delivery,  # Pass the Delivery object to the template
+    }
+    return render(request, 'test/customer_delivery_tracking.html', context)  # Render the template
+
+@login_required
+def test_driver_delivery_tracking(request, delivery_id):
+    """
+    View function to display the delivery tracking page for a driver.
+    """
+    try:
+        delivery = Delivery.objects.get(delivery_id=delivery_id)
+    except Delivery.DoesNotExist:
+        return render(request, 'driver/delivery_not_found.html', {'delivery_id': delivery_id}, status=404)
+
+    # Check if the current user is the driver for this delivery
+    if delivery.driver.user != request.user:
+        return render(request, 'driver/delivery_access_denied.html', {'delivery_id': delivery_id}, status=403)
+
+    context = {
+        'delivery': delivery,
+    }
+    return render(request, 'test/delivery_tracking.html', context)
