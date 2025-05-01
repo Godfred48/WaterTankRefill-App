@@ -28,6 +28,7 @@ from django.db.models import Count, Sum
 from django.db.models.functions import TruncMonth, TruncWeek, TruncYear
 from django.core.serializers import serialize
 import json
+from django.views.decorators.csrf import csrf_exempt
 
 
 
@@ -923,3 +924,128 @@ class CustomerPaymentListView(View):
                 messages.error(request, f"Error updating payment status: {e}")
 
         return redirect('customer_payments')
+
+
+#delivery tracking stuffs
+
+
+@csrf_exempt  # Consider security implications in production
+@login_required  # Ensure only logged-in drivers can update
+def update_driver_location(request, delivery_id):
+    if request.method == 'POST':
+        try:
+            latitude = request.POST.get('latitude')
+            longitude = request.POST.get('longitude')
+            delivery = get_object_or_404(Delivery, delivery_id=delivery_id, driver=request.user.driver_profile) # Assuming driver is linked to user
+
+            if latitude and longitude:
+                delivery.driver_current_lat = latitude
+                delivery.driver_current_lng = longitude
+                delivery.save()
+                return JsonResponse({'status': 'success', 'message': 'Driver location updated successfully'})
+            else:
+                return JsonResponse({'status': 'error', 'message': 'Latitude and longitude are required'}, status=400)
+        except Delivery.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Delivery not found or not assigned to this driver'}, status=404)
+        except Exception as e:
+            print(e)
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+    else:
+        return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
+
+# Similar view to update customer's initial location (if needed)
+@csrf_exempt
+def update_customer_location(request, delivery_id):
+    if request.method == 'POST':
+        try:
+            latitude = request.POST.get('latitude')
+            longitude = request.POST.get('longitude')
+            delivery = get_object_or_404(Delivery, delivery_id=delivery_id, order__customer=request.user) # Assuming customer is linked to user
+
+            if latitude and longitude:
+                delivery.customer_lat = latitude
+                delivery.customer_lng = longitude
+                delivery.save()
+                return JsonResponse({'status': 'success', 'message': 'Customer location updated successfully'})
+            else:
+                return JsonResponse({'status': 'error', 'message': 'Latitude and longitude are required'}, status=400)
+        except Delivery.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Delivery not found for this customer'}, status=404)
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+    else:
+        return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
+
+
+
+
+
+@login_required
+def get_delivery_status(request, delivery_id):
+    try:
+        delivery = get_object_or_404(Delivery, delivery_id=delivery_id)
+        data = {
+            'delivery_status': delivery.delivery_status,
+            'is_delivered': delivery.is_deleivered,
+            'driver_lat': float(delivery.driver_current_lat) if delivery.driver_current_lat else None,
+            'driver_lng': float(delivery.driver_current_lng) if delivery.driver_current_lng else None,
+            'customer_lat': float(delivery.customer_lat) if delivery.customer_lat else None,
+            'customer_lng': float(delivery.customer_lng) if delivery.customer_lng else None,
+            'estimated_arrival_time': delivery.estimated_arrival_time.isoformat() if delivery.estimated_arrival_time else None,
+            'last_updated': delivery.last_updated.isoformat() if delivery.last_updated else None,
+        }
+        return JsonResponse(data)
+    except Delivery.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Delivery not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+
+
+
+@login_required
+def customer_track_delivery(request, delivery_id):
+    delivery = get_object_or_404(Delivery, delivery_id=delivery_id, order__customer=request.user)
+    context = {'delivery': delivery}
+    return render(request, 'customer/track_delivery.html', context)
+
+@login_required
+def driver_track_delivery(request, delivery_id):
+    if not request.user.is_driver or request.user.is_admin:
+        messages.info(request, f"Access Denied ..")
+        return redirect('home')
+    delivery = get_object_or_404(Delivery, delivery_id=delivery_id, driver=request.user.driver_profile)
+    context = {'delivery': delivery}
+    return render(request, 'driver/track_delivery.html', context)
+
+
+
+
+@method_decorator((login_required,customer_required), name='dispatch')
+class CustomerDeliveryListView(View):
+    template_name = 'customer/customer_delivery_list.html'
+
+    def get(self, request):
+        customer = request.user
+        deliveries = Delivery.objects.filter(order__customer=customer).order_by('-delivery_date')
+        context = {
+            'deliveries': deliveries,
+            'page_name': 'customer_deliveries',
+        }
+        return render(request, self.template_name, context)
+
+
+
+@method_decorator((login_required,driver_required), name='dispatch')
+class DriverDeliveryListView(View):
+    template_name = 'driver/delivery_delivery_list.html'
+
+    def get(self, request):
+        driver = request.user.driver_profile
+        deliveries = Delivery.objects.filter(driver=driver).order_by('-delivery_date')
+        context = {
+            'deliveries': deliveries,
+            'page_name': 'customer_deliveries',
+        }
+        return render(request, self.template_name, context)
