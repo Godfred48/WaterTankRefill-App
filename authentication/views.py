@@ -763,3 +763,48 @@ class VendorProfileView(View):
             print(e)
             messages.error(request, f"An error occurred while fetching your profile: {e}")
             return redirect('vendor_dashboard') # Redirect to dashboard or appropriate page
+
+
+
+@method_decorator((login_required, vendor_required), name='dispatch')
+class VendorProfileEditView(View):
+    template_name = 'vendor/vendor_profile_edit.html'
+    form_class = VendorProfileForm
+
+    def get(self, request):
+        try:
+            vendor = request.user.vendor_profile
+            form = self.form_class(instance=vendor)
+            context = {
+                'form': form,
+                'page_name': 'vendor_profile_edit',
+            }
+            return render(request, self.template_name, context)
+        except Vendor.DoesNotExist:
+            messages.error(request, "Your vendor profile could not be found.")
+            return redirect('vendor_profile')
+        except Exception as e:
+            print(e)
+            messages.error(request, f"An error occurred while fetching your profile for editing: {e}")
+            return redirect('vendor_profile')
+
+    def post(self, request):
+        try:
+            vendor = request.user.vendor_profile
+            form = self.form_class(request.POST, instance=vendor)
+            if form.is_valid():
+                form.save()
+                messages.success(request, "Your profile has been updated successfully.")
+                return redirect('vendor_profile')
+            else:
+                context = {
+                    'form': form,
+                    'page_name': 'vendor_profile_edit',
+                }
+                return render(request, self.template_name, context)
+        except Vendor.DoesNotExist:
+            messages.error(request, "Your vendor profile could not be found.")
+            return redirect('vendor_profile')
+        except Exception as e:
+            messages.error(request, f"An error occurred while updating your profile: {e}")
+            return redirect('vendor_profile')
