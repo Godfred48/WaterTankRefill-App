@@ -5,78 +5,294 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Your Deliveries</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <link rel="stylesheet" href="{% static 'css/driver_delivery_list.css' %}">
-</head>
-<body>
-    <div class="container mt-5">
-        <h2>Your Deliveries</h2>
-        {% if deliveries %}
-        <table class="table table-bordered table-striped">
-            <thead class="thead-dark">
-                <tr>
-                    <th>Delivery Number</th>
-                    <th>Delivery Date</th>
-                    <th>Customer Name</th>
-                    <th>Delivery Address</th>
-                    <th>Status</th>
-                    <th>Track</th>
-                    <th>Details</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for delivery in deliveries %}
-                <tr>
-                    <td>{{ delivery.delivery_number }}</td>
-                    <td>{{ delivery.delivery_date|date:"Y-m-d H:i" }}</td>
-                    <td>{{ delivery.customer.get_full_name }}</td>
-                    <td>{{ delivery.delivery_address }}</td>
-                    <td>
-                        <span class="badge {% if delivery.status == 'Pending' %}badge-warning{% elif delivery.status == 'Out for Delivery' %}badge-info{% elif delivery.status == 'Delivered' %}badge-success{% elif delivery.status == 'Failed' %}badge-danger{% endif %}">
-                            {{ delivery.get_status_display }}
-                        </span>
-                    </td>
-                    <td>
-                        {% if delivery.tracking_url %}
-                        <a href="{{ delivery.tracking_url }}" target="_blank">Track</a>
-                        {% else %}
-                        Not Available
-                        {% endif %}
-                    </td>
-                    <td>
-                        <button class="btn btn-sm btn-info view-details-btn" data-delivery-id="{{ delivery.id }}">View</button>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{% static 'css/modern_driver_delivery_list.css' %}">
+    <style>
+        body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #333;
+}
+canvas {
+    height: 200px !important;
+    max-height: 200px;
+}
 
-        <div class="modal fade" id="deliveryDetailsModal" tabindex="-1" role="dialog" aria-labelledby="deliveryDetailsModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-lg" role="document">
+#completedDeliveriesChart, #pendingDeliveriesChart {
+    height: 200px !important;
+    max-height: 200px;
+}
+
+
+.btn-primary {
+    --bs-btn-bg: #007bff;
+    --bs-btn-border-color: #007bff;
+    --bs-btn-hover-bg: #0056b3;
+    --bs-btn-hover-border-color: #0056b3;
+}
+
+.btn-outline-primary {
+    --bs-btn-color: #007bff;
+    --bs-btn-border-color: #007bff;
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: #007bff;
+    --bs-btn-hover-border-color: #007bff;
+}
+
+.card {
+    border: none;
+    border-radius: 0.5rem;
+}
+
+.table thead th {
+    border-bottom: 2px solid #007bff;
+}
+
+.delivery-row {
+    transition: background-color 0.3s ease;
+}
+
+.delivery-row:hover {
+    background-color: #f8f9fa;
+}
+
+.track-button:hover {
+    transform: scale(1.05);
+}
+
+/* Example animation */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.delivery-row {
+    animation: fadeIn 0.5s ease forwards;
+}
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container mt-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="fw-bold text-primary">Your Deliveries</h2>
+            <div>
+                <button class="btn btn-outline-primary"><i class="fas fa-sync-alt me-2"></i> Refresh</button>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="fas fa-check-circle text-success me-2"></i> Completed Deliveries</h5>
+                        <canvas id="completedDeliveriesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="fas fa-hourglass-half text-warning me-2"></i> Pending Deliveries</h5>
+                        <canvas id="pendingDeliveriesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if deliveries %}
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="bg-primary text-white">
+                            <tr>
+                                <th>ID</th>
+                                <th>Date</th>
+                                <th>Customer</th>
+                                <th>Address</th>
+                                <th>Status</th>
+                                <th class="text-center">Track</th>
+                                <th class="text-center">Details</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for delivery in deliveries %}
+                            <tr class="delivery-row" data-delivery-id="{{ delivery.id }}">
+                                <td><span class="fw-semibold">{{ delivery.delivery_id }}</span></td>
+                                <td>{{ delivery.delivery_date|date:"Y-m-d H:i" }}</td>
+                                <td>{{ delivery.order.customer.get_full_name }}</td>
+                                <td>{{ delivery.order.delivery_location }}</td>
+                                <td>
+                                    <span class="badge rounded-pill
+                                          {% if delivery.status == 'Pending' %}bg-warning text-dark{% elif delivery.status == 'In Progress' %}bg-info{% elif delivery.status == 'Delivered' %}bg-success{% elif delivery.status == 'Failed' %}bg-danger{% endif %}">
+                                        {{ delivery.delivery_status }}
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    <a href="{% url 'driver_track_delivery' delivery.delivery_id %}" class="btn btn-sm btn-outline-secondary track-button" title="Track Delivery">
+                                        <i class="fas fa-map-marked-alt"></i>
+                                    </a>
+                                </td>
+                                <td class="text-center">
+                                    <button class="btn btn-sm btn-info view-details-btn" data-bs-toggle="modal" data-bs-target="#deliveryDetailsModal" data-delivery-id="{{ delivery.id }}" title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="deliveryDetailsModal" tabindex="-1" aria-labelledby="deliveryDetailsModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
                 <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="deliveryDetailsModalLabel">Delivery Details</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
+                    <div class="modal-header bg-light">
+                        <h5 class="modal-title fw-bold text-primary" id="deliveryDetailsModalLabel">Delivery Details</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body" id="deliveryDetailsContent">
                         </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <div class="modal-footer bg-light">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-times me-2"></i> Close</button>
                     </div>
                 </div>
             </div>
         </div>
 
         {% else %}
-        <p>No deliveries assigned to you yet.</p>
+        <div class="alert alert-info mt-3" role="alert">
+            <i class="fas fa-info-circle me-2"></i> No deliveries assigned to you yet.
+        </div>
         {% endif %}
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-    <script src="{% static 'js/driver_delivery_list.js' %}"></script>
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="{% static 'js/modern_driver_delivery_list.js' %}"></script>
+    <script type="text/javascript">
+        $(document).ready(function() {
+            $('.view-details-btn').on('click', function() {
+                const deliveryId = $(this).data('delivery-id');
+                $('#deliveryDetailsContent').html('<div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>');
+                // Replace with your actual AJAX call to fetch delivery details
+                $.ajax({
+                    url: `/driver/deliveries/${deliveryId}/details/`,
+                    type: 'GET',
+                    success: function(data) {
+                        $('#deliveryDetailsContent').html(data); // Assuming 'data' is the HTML for the modal body
+                    },
+                    error: function() {
+                        $('#deliveryDetailsContent').html('<p class="text-danger">Error loading delivery details.</p>');
+                    }
+                });
+            });
+    
+            // Sample data for charts (replace with your actual data from Django)
+            const completedDeliveries = 75;
+            const pendingDeliveries = 25;
+    
+            const completedCtx = document.getElementById('completedDeliveriesChart').getContext('2d');
+            const pendingCtx = document.getElementById('pendingDeliveriesChart').getContext('2d');
+    
+            new Chart(completedCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Completed', 'Remaining'],
+                    datasets: [{
+                        data: [completedDeliveries, 100 - completedDeliveries],
+                        backgroundColor: ['#28a745', '#f3f3f3'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        animateRotate: false,
+                        animateScale: false
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                usePointStyle: true
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    if (context.parsed !== null) {
+                                        label += `: ${context.parsed}%`;
+                                    }
+                                    return label;
+                                }
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: `${completedDeliveries}%`,
+                            position: 'top',
+                            font: {
+                                size: 20
+                            }
+                        }
+                    }
+                }
+            });
+    
+            new Chart(pendingCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Pending', 'Remaining'],
+                    datasets: [{
+                        data: [pendingDeliveries, 100 - pendingDeliveries],
+                        backgroundColor: ['#ffc107', '#f3f3f3'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        animateRotate: false,
+                        animateScale: false
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                usePointStyle: true
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    if (context.parsed !== null) {
+                                        label += `: ${context.parsed}%`;
+                                    }
+                                    return label;
+                                }
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: `${pendingDeliveries}%`,
+                            position: 'top',
+                            font: {
+                                size: 20
+                            }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
 </body>
 </html>
