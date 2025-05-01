@@ -16,9 +16,11 @@ urlpatterns = [
     path('vendor_dashboard/', VendorDashboard.as_view(), name='vendor_dashboard'),
     path('vendor/unboard_driver/', DriverOnboardingView.as_view(), name='onboard_driver'),
     path('vendor/view_driver/', VendorViewDrivers.as_view(), name='vendor_view_driver'),
+    path('vendor/profile/edit/', VendorProfileEditView.as_view(), name='vendor_profile_edit'),
+    #vendors
     path('vendor/profile/<str:user_id>/', VendorProfileDetailView.as_view(), name='vendor_profile_detail'),
     path('vendor/profile/', VendorProfileView.as_view(), name='vendor_profile'),
-    #vendors
+    
     path('customer/vendors/', Vendors.as_view(), name='vendors'),
     path('vendor/orders/', VendorViewOrders.as_view(), name='vendor_orders'),
     #customer orders
