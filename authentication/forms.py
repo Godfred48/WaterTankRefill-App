@@ -4,7 +4,7 @@ from .models import User
 from django.contrib.auth import authenticate
 from django import forms
 from django.contrib.auth import get_user_model
-from .models import Driver,Order
+from .models import Driver,Order,Vendor 
 
 User = get_user_model()
 
@@ -116,3 +116,32 @@ class OrderForm(forms.ModelForm):
         except ValueError:
             raise forms.ValidationError("Please enter a valid number for litres.")
         return litres
+
+
+
+
+class VendorProfileForm(forms.ModelForm):
+    full_name = forms.CharField(max_length=100, label='Contact Name')
+    email = forms.EmailField(required=False)
+    address = forms.CharField(max_length=255, required=False, widget=forms.Textarea(attrs={'rows': 2}))
+
+    class Meta:
+        model = Vendor
+        fields = ['business_name', 'location', 'price_per_liter', 'status']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if 'instance' in kwargs and kwargs['instance']:
+            self.fields['full_name'].initial = kwargs['instance'].user.full_name
+            self.fields['email'].initial = kwargs['instance'].user.email
+            self.fields['address'].initial = kwargs['instance'].user.address
+
+    def save(self, commit=True):
+        vendor = super().save(commit=False)
+        vendor.user.full_name = self.cleaned_data['full_name']
+        vendor.user.email = self.cleaned_data['email']
+        vendor.user.address = self.cleaned_data['address']
+        vendor.user.save()
+        if commit:
+            vendor.save()
+        return vendor
