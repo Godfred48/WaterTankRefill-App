@@ -808,3 +808,62 @@ class VendorProfileEditView(View):
         except Exception as e:
             messages.error(request, f"An error occurred while updating your profile: {e}")
             return redirect('vendor_profile')
+
+
+
+
+@method_decorator((login_required, vendor_required), name='dispatch')
+class PaymentListView(View):
+    template_name = 'vendor/payment_list.html'
+
+    def get(self, request):
+        try:
+            vendor = request.user.vendor_profile
+            payments = Payment.objects.filter(order__vendor=vendor).order_by('-order__order_date')
+
+             # Prepare data for Payment Method Chart
+            payment_methods_data = Payment.objects.filter(order__vendor=vendor).values('payment_method').annotate(count=Count('payment_method'))
+            payment_method_labels = [item['payment_method'] for item in payment_methods_data]
+            payment_method_counts = [item['count'] for item in payment_methods_data]
+
+            # Prepare data for Payment Status Chart
+            payment_statuses_data = Payment.objects.filter(order__vendor=vendor).values('payment_status').annotate(count=Count('payment_status'))
+            payment_status_labels = [item['payment_status'] for item in payment_statuses_data]
+            payment_status_counts = [item['count'] for item in payment_statuses_data]
+
+
+            context = {
+                'payments': payments,
+                'page_name': 'payment_list',
+                'payment_methods_data': {
+                    'labels': payment_method_labels,
+                    'data': payment_method_counts,
+                },
+                'payment_statuses_data': {
+                    'labels': payment_status_labels,
+                    'data': payment_status_counts,}
+            }
+            return render(request, self.template_name, context)
+        except Exception as e:
+            messages.error(request, f"An error occurred while fetching payments: {e}")
+            return redirect('vendor_dashboard')
+
+    def post(self, request):
+        if 'payment_id' in request.POST and 'status' in request.POST:
+            payment_id = request.POST['payment_id']
+            new_status = request.POST['status']
+
+            if new_status in [status[0] for status in Payment._meta.get_field('payment_status').choices]:
+                try:
+                    payment = get_object_or_404(Payment, payment_id=payment_id, order__vendor__user=request.user)
+                    payment.payment_status = new_status
+                    payment.order.is_complete = True
+                    payment.save()
+                    
+                    messages.success(request, f"Payment status for Order #{payment.order.order_id} updated to {new_status}.")
+                except Exception as e:
+                    messages.error(request, f"Error updating payment status: {e}")
+            else:
+                messages.error(request, "Invalid payment status.")
+
+        return redirect('vendor_payments')
