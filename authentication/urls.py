@@ -26,6 +26,7 @@ urlpatterns = [
     path('vendor/orders/', VendorViewOrders.as_view(), name='vendor_orders'),
     #customer orders
     path('customer/orders/', CustomerViewOrders.as_view(), name='customer_orders'),
+    path('customer/deliveries/', CustomerDeliveryListView.as_view(), name='customer_deliveries'),
     path('customer/payments/', CustomerPaymentListView.as_view(), name='customer_payments'),
     path('customer/profile/', CustomerProfileView.as_view(), name='customer_profile'),
     path('customer/profile/update/', CustomerProfileUpdateView.as_view(), name='customer_profile_update'),
@@ -36,5 +37,10 @@ urlpatterns = [
     path('driver/deliveries/<str:delivery_id>/mark_delivered/', views.MarkDeliveryAsDeliveredView.as_view(), name='mark_delivery_delivered'),
     path('driver/profile/', DriverProfileView.as_view(), name='driver_profile'),
     path('driver/history/', DeliveryHistoryView.as_view(), name='delivery_history'),
+    path('driver/deliveries/', DriverDeliveryListView.as_view(), name='driver_delivery_list'),
+    #delivery urls path
+    path('delivery/<str:delivery_id>/status/', views.get_delivery_status, name='get_delivery_status'),
+    path('customer/delivery/<str:delivery_id>/track/', views.customer_track_delivery, name='customer_track_delivery'),
+    path('driver/delivery/<str:delivery_id>/track/', views.driver_track_delivery, name='driver_track_delivery'),
 
 ]
