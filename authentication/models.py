@@ -176,7 +176,7 @@ class Tank(models.Model):
             return self.vendor.price_per_liter * self.tank_size
         else:
             return 0
-        
+    
 
     def save(self, *args, **kwargs):
         if self.litres:
@@ -270,3 +270,4 @@ class Review(models.Model):
     def __str__(self):
         return f"{self.rating} - {self.customer.full_name}"
     
+
