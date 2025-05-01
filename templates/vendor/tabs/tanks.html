@@ -1,0 +1,38 @@
+<div class="tab-pane fade" id="tanks" role="tabpanel">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h4 class="fw-bold">Tank Inventory</h4>
+      <input type="text" class="form-control w-25" placeholder="Search tanks..." id="tankSearch">
+    </div>
+  
+    <div class="row g-4 animate__animated animate__fadeInUp">
+      {% for tank in tanks %}
+      <div class="col-md-6 col-lg-4">
+        <div class="card shadow-sm h-100 border-0 rounded-4">
+          <img src="{{ tank.photo.url }}" class="card-img-top rounded-top-4 object-fit-cover" height="180" style="object-fit: cover;" alt="Tank Image">
+          <div class="card-body">
+            <h5 class="card-title mb-1">{{ tank.tank_type }} - {{ tank.litres }}</h5>
+            <p class="card-text text-muted mb-2">Size: {{ tank.tank_size }}L</p>
+            <p class="fw-bold text-primary mb-1">Price: ₵{{ tank.get_price|floatformat:2 }}</p>
+            <span class="badge bg-{{ tank.availability_status|lower|yesno:'success,danger,warning' }}">
+              {{ tank.availability_status }}
+            </span>
+          </div>
+        </div>
+      </div>
+      {% empty %}
+      <div class="col-12 text-center text-muted">No tanks available.</div>
+      {% endfor %}
+    </div>
+  </div>
+  
+  <script>
+    document.getElementById('tankSearch').addEventListener('input', function () {
+      const filter = this.value.toLowerCase();
+      const cards = document.querySelectorAll('#tanks .card');
+      cards.forEach(card => {
+        const text = card.innerText.toLowerCase();
+        card.parentElement.style.display = text.includes(filter) ? '' : 'none';
+      });
+    });
+  </script>
+  

@@ -1,0 +1,54 @@
+<div class="tab-pane fade show active" id="orders" role="tabpanel">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h4 class="fw-bold">Order History</h4>
+      <input type="text" class="form-control w-25" placeholder="Search orders..." id="orderSearch">
+    </div>
+  
+    <div class="table-responsive animate__animated animate__fadeInUp">
+      <table class="table table-hover align-middle">
+        <thead class="table-dark">
+          <tr>
+            <th scope="col">Order ID</th>
+            <th scope="col">Customer</th>
+            <th scope="col">Date</th>
+            <th scope="col">Litres</th>
+            <th scope="col">Tank Type</th>
+            <th scope="col">Status</th>
+            <th scope="col">Price</th>
+          </tr>
+        </thead>
+        <tbody id="orderTable">
+          {% for order in orders %}
+          <tr>
+            <td>#{{ order.order_id }}</td>
+            <td>{{ order.customer.full_name }}</td>
+            <td>{{ order.order_date|date:"M d, Y" }}</td>
+            <td>{{ order.litres }}</td>
+            <td>{{ order.tank_type }}</td>
+            <td>
+              <span class="badge bg-{{ order.status|lower|yesno:'success,danger,warning' }}">{{ order.status }}</span>
+            </td>
+            <td>₵{{ order.get_total_price|floatformat:2 }}</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7" class="text-center text-muted">No orders available.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  
+  <script>
+    // Simple client-side search/filter
+    document.getElementById('orderSearch').addEventListener('input', function () {
+      const filter = this.value.toLowerCase();
+      const rows = document.querySelectorAll('#orderTable tr');
+      rows.forEach(row => {
+        const text = row.innerText.toLowerCase();
+        row.style.display = text.includes(filter) ? '' : 'none';
+      });
+    });
+  </script>
+  

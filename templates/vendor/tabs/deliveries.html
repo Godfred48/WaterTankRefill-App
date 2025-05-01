@@ -1,0 +1,71 @@
+<div class="tab-pane fade" id="deliveries" role="tabpanel">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h4 class="fw-bold">Delivery Records</h4>
+      <input type="text" class="form-control w-25" placeholder="Search deliveries..." id="deliverySearch">
+    </div>
+  
+    <div class="table-responsive animate__animated animate__fadeIn">
+      <table class="table table-hover align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Order ID</th>
+            <th>Driver</th>
+            <th>Status</th>
+            <th>Delivered?</th>
+            <th>Delivery Date</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for delivery in deliveries %}
+          <tr>
+            <td>{{ delivery.order.order_id }}</td>
+            <td>
+              {% if delivery.driver %}
+                <div class="d-flex align-items-center">
+                  <img src="{{ delivery.driver.user.get_photo }}" class="rounded-circle me-2" width="35" height="35" style="object-fit: cover;">
+                  <span>{{ delivery.driver.user.full_name }}</span>
+                </div>
+              {% else %}
+                <span class="text-muted">Unassigned</span>
+              {% endif %}
+            </td>
+            <td>
+              <span class="badge bg-{{ delivery.delivery_status|lower|yesno:'success,warning' }}">
+                {{ delivery.get_delivery_status_display }}
+              </span>
+            </td>
+            <td>
+              {% if delivery.is_deleivered %}
+                <i class="bi bi-check-circle-fill text-success"></i>
+              {% else %}
+                <i class="bi bi-x-circle-fill text-danger"></i>
+              {% endif %}
+            </td>
+            <td>{{ delivery.delivery_date|date:"M d, Y H:i A" }}</td>
+            <td>
+              <a href="#" class="btn btn-sm btn-outline-primary">
+                View Order
+              </a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" class="text-center text-muted">No delivery records found.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  
+  <script>
+    document.getElementById('deliverySearch').addEventListener('input', function () {
+      const filter = this.value.toLowerCase();
+      const rows = document.querySelectorAll('#deliveries tbody tr');
+      rows.forEach(row => {
+        row.style.display = row.innerText.toLowerCase().includes(filter) ? '' : 'none';
+      });
+    });
+  </script>
+  
