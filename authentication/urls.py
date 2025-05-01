@@ -20,6 +20,7 @@ urlpatterns = [
     #vendors
     path('vendor/profile/<str:user_id>/', VendorProfileDetailView.as_view(), name='vendor_profile_detail'),
     path('vendor/profile/', VendorProfileView.as_view(), name='vendor_profile'),
+    path('vendor/payments/', PaymentListView.as_view(), name='vendor_payments'),
     
     path('customer/vendors/', Vendors.as_view(), name='vendors'),
     path('vendor/orders/', VendorViewOrders.as_view(), name='vendor_orders'),
