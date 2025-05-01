@@ -24,6 +24,11 @@ from django.utils import timezone
 from django.views.generic import TemplateView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Sum
+from django.db.models import Count, Sum
+from django.db.models.functions import TruncMonth, TruncWeek, TruncYear
+from django.core.serializers import serialize
+import json
+
 
 
 # Create your views here.
@@ -867,3 +872,54 @@ class PaymentListView(View):
                 messages.error(request, "Invalid payment status.")
 
         return redirect('vendor_payments')
+
+
+
+@method_decorator((login_required, customer_required), name='dispatch')
+class CustomerPaymentListView(View):
+    template_name = 'customer/customer_payment_list.html'
+
+    def get(self, request):
+        try:
+            customer = request.user
+            payments = Payment.objects.filter(order__customer=customer).order_by('-order__order_date')
+
+            # Monthly Analysis
+            monthly_analysis = Payment.objects.filter(order__customer=customer).annotate(month=TruncMonth('order__order_date')).values('month').annotate(total_payments=Count('payment_id'), total_amount=Sum('amount')).order_by('month')
+            monthly_data = [{'month': item['month'].strftime('%Y-%m'), 'payments': item['total_payments'], 'amount': float(item['total_amount'])} for item in monthly_analysis]
+
+            # Weekly Analysis
+            weekly_analysis = Payment.objects.filter(order__customer=customer).annotate(week=TruncWeek('order__order_date')).values('week').annotate(total_payments=Count('payment_id'), total_amount=Sum('amount')).order_by('week')
+            weekly_data = [{'week': item['week'].strftime('%Y-W%W'), 'payments': item['total_payments'], 'amount': float(item['total_amount'])} for item in weekly_analysis]
+
+            # Yearly Analysis
+            yearly_analysis = Payment.objects.filter(order__customer=customer).annotate(year=TruncYear('order__order_date')).values('year').annotate(total_payments=Count('payment_id'), total_amount=Sum('amount')).order_by('year')
+            yearly_data = [{'year': item['year'].strftime('%Y'), 'payments': item['total_payments'], 'amount': float(item['total_amount'])} for item in yearly_analysis]
+
+            context = {
+                'payments': payments,
+                'page_name': 'customer_payment_list',
+                'monthly_data_json': json.dumps(monthly_data),
+                'weekly_data_json': json.dumps(weekly_data),
+                'yearly_data_json': json.dumps(yearly_data),
+            }
+            return render(request, self.template_name, context)
+        except Exception as e:
+            messages.error(request, f"An error occurred while fetching your payments: {e}")
+            return redirect('customer_dashboard')
+
+    def post(self, request):
+        if 'payment_id' in request.POST and 'action' in request.POST and request.POST['action'] == 'paid':
+            payment_id = request.POST['payment_id']
+            try:
+                payment = get_object_or_404(Payment, payment_id=payment_id, order__customer=request.user)
+                if payment.payment_status == 'Pending':
+                    payment.payment_status = 'Pending Confirmation'
+                    payment.save()
+                    messages.success(request, f"You have indicated that you have paid for Order #{payment.order.order_id}. The vendor will confirm.")
+                else:
+                    messages.info(request, f"You have already indicated payment for Order #{payment.order.order_id}.")
+            except Exception as e:
+                messages.error(request, f"Error updating payment status: {e}")
+
+        return redirect('customer_payments')
