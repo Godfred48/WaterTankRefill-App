@@ -192,22 +192,16 @@ class DriverOnboardingView(FormView):
         if not user.is_vendor:
             messages.error(self.request, "Only vendors can onboard drivers.")
             return redirect('home')
-        # Generate and set a random password
-        random_password = generate_random_password()
-
-
         # Create user account for the driver
         driver_user = User.objects.create_user(
-            full_name=form.cleaned_data['full_name'],
-            email=form.cleaned_data['email'],
-            phone_number=form.cleaned_data['phone_number'],
-            address=form.cleaned_data['address'],
-            gender=form.cleaned_data['gender'],
-            is_driver=True
-        )
-
-        driver_user.set_password(random_password)
-        driver_user.save()
+      full_name=form.cleaned_data['full_name'],
+      email=form.cleaned_data['email'],
+      phone_number=form.cleaned_data['phone_number'],
+      address=form.cleaned_data['address'],
+      gender=form.cleaned_data['gender'],
+      is_driver=True,
+      password=form.cleaned_data['password']  # Use vendor-set password
+     )
         vendor = Vendor.objects.get(user=user)
 
         # Link driver profile
