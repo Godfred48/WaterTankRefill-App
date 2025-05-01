@@ -1,0 +1,226 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Track Delivery - Order #{{ delivery.order.order_id }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+          integrity="sha512-xodZBNTC5n17Xt2atTPvknHGJwWtYTktzjLFvadixZkncGysNehvu3eYDwGP6irJHqx9v/GG8xMxjiS0FaQPQ=="
+          crossorigin=""/>
+    <style>
+        body {
+            font-family: sans-serif;
+            background-color: #f8f9fa;
+        }
+        .container {
+            margin-top: 20px;
+        }
+        #mapid {
+            height: 400px;
+            width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        .delivery-info {
+            background-color: white;
+            padding: 20px;
+            margin-top: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        .delivery-info h2 {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+            color: #28a745; /* Green for driver info */
+        }
+        .delivery-info p {
+            margin-bottom: 8px;
+        }
+        .badge {
+            border-radius: 5px;
+            padding: 0.4em 0.6em;
+            font-size: 0.9em;
+        }
+        .badge-pending {
+            background-color: #ffc107;
+            color: #212529;
+        }
+        .badge-out-for-delivery {
+            background-color: #17a2b8;
+            color: white;
+        }
+        .badge-delivered {
+            background-color: #28a745;
+            color: white;
+        }
+        .badge-other {
+            background-color: #6c757d;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1><i class="fas fa-truck me-2"></i> Track Delivery</h1>
+        <p class="mb-3">Order #{{ delivery.order.order_id }}</p>
+
+        <div id="mapid"></div>
+
+        <div class="delivery-info mt-4">
+            <h2><i class="fas fa-info-circle me-2"></i> Delivery Information</h2>
+            <p><strong>Delivery Status:</strong> <span id="delivery-status" class="badge badge-pill">{% if delivery.delivery_status == 'Pending' %}Pending{% elif delivery.delivery_status == 'Out for Delivery' %}Out for Delivery{% elif delivery.delivery_status == 'Delivered' %}Delivered{% else %}{{ delivery.delivery_status }}{% endif %}</span></p>
+            <p><strong>Estimated Arrival:</strong> <span id="estimated-arrival">{% if delivery.estimated_arrival_time %}{{ delivery.estimated_arrival_time|date:"F j, Y, g:i a" }}{% else %}Not yet estimated{% endif %}</span></p>
+            <p><strong>Last Updated:</strong> <span id="last-updated">{{ delivery.last_updated|date:"F j, Y, g:i a" }}</span></p>
+            <p><strong>Your Location:</strong> <span id="driver-location">{% if delivery.driver_current_lat and delivery.driver_current_lng %}{{ delivery.driver_current_lat|floatformat:6 }}, {{ delivery.driver_current_lng|floatformat:6 }}{% else %}Not yet available{% endif %}</span></p>
+            <p><strong>Customer Location:</strong> <span id="customer-location">{% if delivery.customer_lat and delivery.customer_lng %}{{ delivery.customer_lat|floatformat:6 }}, {{ delivery.customer_lng|floatformat:6 }}{% else %}Not yet available{% endif %}</span></p>
+        </div>
+
+        <div class="mt-3">
+            <a href="{% url 'driver_dashboard' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
+            integrity="sha512-XQoYM8mRkwPWQrQlQlJVlWI1ihJoLEejSjy/l76jmWjxWwDJxqJvpZYYU8HAikQi1Y1cgIwzKHmPJubbGhFaCw=="
+            crossorigin=""></script>
+
+    <script>
+        const deliveryId = "{{ delivery.delivery_id }}";
+        let map = null;
+        let customerMarker = null;
+        let driverMarker = null;
+
+        function initMap(customerLat, customerLng, driverLat, driverLng) {
+            if (!map && driverLat && driverLng) {
+                map = L.map('mapid').setView([driverLat, driverLng], 15); // Center on driver initially
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                }).addTo(map);
+
+                driverMarker = L.marker([driverLat, driverLng], {icon: L.icon({
+                    iconUrl: '{% static "img/delivery-truck-icon.png" %}', // Replace with your truck icon path
+                    iconSize: [32, 32],
+                    iconAnchor: [16, 32],
+                    popupAnchor: [0, -32]
+                })}).addTo(map)
+                    .bindPopup('Your Location').openPopup();
+
+                if (customerLat && customerLng) {
+                    customerMarker = L.marker([customerLat, customerLng]).addTo(map)
+                        .bindPopup('Customer Location');
+                }
+            } else if (map) {
+                if (driverLat && driverLng && !driverMarker) {
+                    driverMarker = L.marker([driverLat, driverLng], {icon: L.icon({
+                        iconUrl: '{% static "img/delivery-truck-icon.png" %}', // Replace with your truck icon path
+                        iconSize: [32, 32],
+                        iconAnchor: [16, 32],
+                        popupAnchor: [0, -32]
+                    })}).addTo(map)
+                        .bindPopup('Your Location');
+                    map.setView([driverLat, driverLng], 15);
+                } else if (driverLat && driverLng && driverMarker) {
+                    driverMarker.setLatLng([driverLat, driverLng]);
+                    map.setView([driverLat, driverLng], 15);
+                }
+
+                if (customerLat && customerLng) {
+                    if (customerMarker) {
+                        customerMarker.setLatLng([customerLat, customerLng]);
+                    } else {
+                        customerMarker = L.marker([customerLat, customerLng]).addTo(map)
+                            .bindPopup('Customer Location');
+                    }
+                }
+            }
+        }
+
+        function updateDeliveryStatus() {
+            fetch(`/delivery/${deliveryId}/status/`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('delivery-status').textContent = data.delivery_status;
+                    document.getElementById('estimated-arrival').textContent = data.estimated_arrival_time ? new Date(data.estimated_arrival_time).toLocaleString() : 'Not yet estimated';
+                    document.getElementById('last-updated').textContent = new Date(data.last_updated).toLocaleString();
+                    document.getElementById('customer-location').textContent = data.customer_lat ? `${data.customer_lat.toFixed(6)}, ${data.customer_lng.toFixed(6)}` : 'Not yet available';
+                    document.getElementById('driver-location').textContent = data.driver_lat ? `${data.driver_lat.toFixed(6)}, ${data.driver_lng.toFixed(6)}` : 'Not yet available';
+
+                    // Update map
+                    initMap(data.customer_lat, data.customer_lng, data.driver_lat, data.driver_lng);
+
+                    // Update badge class based on status
+                    const statusBadge = document.getElementById('delivery-status');
+                    statusBadge.classList.remove('badge-pending', 'badge-out-for-delivery', 'badge-delivered', 'badge-other');
+                    if (data.delivery_status === 'Pending') {
+                        statusBadge.classList.add('badge-pending');
+                    } else if (data.delivery_status === 'Out for Delivery') {
+                        statusBadge.classList.add('badge-out-for-delivery');
+                    } else if (data.delivery_status === 'Delivered') {
+                        statusBadge.classList.add('badge-delivered');
+                    } else {
+                        statusBadge.classList.add('badge-other');
+                        statusBadge.textContent = data.delivery_status;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching delivery status:', error);
+                });
+        }
+
+        function updateDriverLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(position => {
+                    const latitude = position.coords.latitude;
+                    const longitude = position.coords.longitude;
+                    document.getElementById('driver-location').textContent = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+                    fetch(`/delivery/${deliveryId}/driver/location/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'X-CSRFToken': getCookie('csrftoken')
+                        },
+                        body: `latitude=${latitude}&longitude=${longitude}`
+                    }).catch(error => {
+                        console.error('Error updating driver location:', error);
+                    });
+                    // Initialize or update map with driver's location
+                    initMap(null, null, latitude, longitude);
+                }, error => {
+                    console.error('Error getting driver location:', error);
+                    updateDeliveryStatus(); // Still try to get customer location if available
+                });
+            } else {
+                console.log('Geolocation is not supported by this browser.');
+                updateDeliveryStatus(); // Try to get customer location if available
+            }
+        }
+
+        // Get initial driver location and start periodic updates
+        updateDriverLocation();
+        setInterval(updateDriverLocation, 5000); // Update driver location every 5 seconds
+        setInterval(updateDeliveryStatus, 5000); // Also periodically update other delivery info
+
+        // Helper function to get CSRF token from cookies
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    let cookie = cookies[i].trim();
+                    // Does this cookie string begin with the name we want?
+                    if (cookie.startsWith(name + '=')) {
+                        cookieValue = cookie.substring(name.length + 1);
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    </script>
+</body>
+</html>
