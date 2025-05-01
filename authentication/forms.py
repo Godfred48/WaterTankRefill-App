@@ -70,6 +70,8 @@ class DriverOnboardingForm(forms.Form):
     gender = forms.ChoiceField(choices=[('Male', 'Male'), ('Female', 'Female'), ('Other', 'Other')])
     license_number = forms.CharField(max_length=100)
     vehicle_type = forms.ChoiceField(choices=VEHICLE_CHOICES)
+    password = forms.CharField(widget=forms.PasswordInput)
+    confirm_password = forms.CharField(widget=forms.PasswordInput)
 
     def clean_phone_number(self):
         phone = self.cleaned_data['phone_number']
@@ -82,6 +84,14 @@ class DriverOnboardingForm(forms.Form):
         if Driver.objects.filter(license_number=license_number).exists():
             raise forms.ValidationError("A driver with this license number already exists.")
         return license_number
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        password = cleaned_data.get("password")
+        confirm_password = cleaned_data.get("confirm_password")
+        if password and confirm_password and password != confirm_password:
+            self.add_error('confirm_password', "Passwords do not match.")
+
 
 
 
