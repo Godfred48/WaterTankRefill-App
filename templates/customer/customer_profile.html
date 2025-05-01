@@ -41,6 +41,7 @@
                         <p class="mb-0">Address: {{ customer.address }}</p>
                         <p>Gender: {{ customer.gender }}</p>
                         <a href="{% url 'customer_profile_update' %}" class="btn btn-primary mt-2">Edit Profile</a>
+                        <a href="{% url 'customer_profile_detail' customer.pk %}" class="btn btn-primary mt-2">Profile details</a>
                     </div>
                 </div>
                 <hr>
