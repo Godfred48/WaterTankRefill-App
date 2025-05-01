@@ -23,6 +23,7 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.views.generic import TemplateView
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db.models import Sum
 
 
 # Create your views here.
@@ -544,6 +545,11 @@ class MarkDeliveryAsDeliveredView(View):
             delivery.is_deleivered = True
             delivery.delivery_status = 'Delivered' 
             delivery.save()
+            # Updating the associated order status
+            order = delivery.order
+            order.status = 'Delivered'
+            order.is_complete = True 
+            order.save()
             return JsonResponse({'status': 'success', 'message': 'Delivery status updated successfully.'})
         except Delivery.DoesNotExist:
             return JsonResponse({'status': 'error', 'message': 'Invalid delivery ID or delivery already marked as delivered.'}, status=404)
@@ -592,7 +598,8 @@ class CustomerProfileDetailView(LoginRequiredMixin,DetailView):
         context = super().get_context_data(**kwargs)
         customer = self.request.user
         orders = customer.orders.select_related('vendor').all()
-        payments = Payment.objects.filter(order__in=orders).select_related('order')
+        payments = Payment.objects.filter(order__customer=customer).select_related('order')
+        total_payments_made = payments.aggregate(total_balance=Sum('amount'))['total_balance'] or 0.00
         deliveries = Delivery.objects.filter(order__in=orders).select_related('order', 'driver')
         reviews = Review.objects.filter(customer=customer).select_related('vendor')
 
@@ -601,13 +608,14 @@ class CustomerProfileDetailView(LoginRequiredMixin,DetailView):
         pending_orders = orders.filter(status='Pending').count()
         total_payments = payments.count()
         total_reviews = reviews.count()
-        total_spent = sum(payment.amount for payment in payments)
+        total_spent = total_payments_made
         context.update({
             'page_name': 'customer_profile',
             'list_name': 'customers',
             'orders': orders,
             'payments': payments,
             'deliveries': deliveries,
+            'total_payments_made': total_payments_made,
             'reviews': reviews,
             'analytics': {
                 'total_orders': total_orders,
@@ -621,6 +629,59 @@ class CustomerProfileDetailView(LoginRequiredMixin,DetailView):
 
     def get_queryset(self):
         return User.objects.filter(is_customer=True)
+
+    def get_object(self):
+        return get_object_or_404(User, pk=self.kwargs['user_id'])
+
+
+
+
+@method_decorator((login_required,vendor_required), name='dispatch')
+class VendorProfileDetailView(LoginRequiredMixin, DetailView):
+    model = User
+    template_name = 'vendor/vendor_detail.html'
+    context_object_name = 'vendor'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        vendor_user = self.request.user
+        vendor = vendor_user.vendor_profile  # via OneToOneField
+
+        orders = vendor.orders.select_related('customer').all()
+        payments = Payment.objects.filter(order__vendor=vendor).select_related('order')
+        deliveries = Delivery.objects.filter(order__vendor=vendor).select_related('order', 'driver')
+        drivers = vendor.drivers.select_related('user').all()
+        tanks = vendor.tanks.all()
+        reviews = Review.objects.filter(vendor=vendor).select_related('customer')
+
+        total_orders = orders.count()
+        completed_orders = orders.filter(is_complete=True).count()
+        pending_orders = orders.filter(status='Pending').count()
+        total_earnings = payments.aggregate(total=Sum('amount'))['total'] or 0.00
+        total_reviews = reviews.count()
+
+        context.update({
+            'vendor': vendor,
+            'orders': orders,
+            'payments': payments,
+            'deliveries': deliveries,
+            'drivers': drivers,
+            'tanks': tanks,
+            'reviews': reviews,
+            'analytics': {
+                'total_orders': total_orders,
+                'completed_orders': completed_orders,
+                'pending_orders': pending_orders,
+                'total_earnings': total_earnings,
+                'total_reviews': total_reviews,
+                'total_drivers': drivers.count(),
+                'total_tanks': tanks.count(),
+            }
+        })
+        return context
+
+    def get_queryset(self):
+        return User.objects.filter(is_vendor=True)
 
     def get_object(self):
         return get_object_or_404(User, pk=self.kwargs['user_id'])
