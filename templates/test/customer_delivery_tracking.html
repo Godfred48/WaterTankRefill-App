@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Delivery Tracking</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <style>
+        #map {
+            width: 100%;
+            height: 400px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Delivery Tracking</h1>
+    <p>Delivery ID: {{ delivery.delivery_id }}</p>
+    <p>Order ID: {{ delivery.order.order_id }}</p>
+    <p>Driver: {{ delivery.driver.user.username }}</p>
+
+    <div id="map"></div>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script>
+        // Initialize the map
+        let map = L.map('map').setView([{{ delivery.driver_current_lat|default:0 }}, {{ delivery.driver_current_lng|default:0 }}], 10);
+
+        // Add OpenStreetMap tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Create a marker for the driver's location
+        let driverMarker = L.marker([{{ delivery.driver_current_lat|default:0 }}, {{ delivery.driver_current_lng|default:0 }}]).addTo(map);
+
+        // Function to update the driver's marker position
+        function updateDriverMarker(lat, lng) {
+            driverMarker.setLatLng([lat, lng]);
+        }
+
+        // WebSocket connection setup
+        const deliveryId = "{{ delivery.delivery_id }}";
+        const socket = new WebSocket(`ws://${window.location.host}/ws/delivery-tracking/${deliveryId}/`);
+
+        socket.onopen = () => {
+            console.log("WebSocket connected as customer");
+        };
+
+        socket.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            if (data.type === "location_update") {
+                const lat = parseFloat(data.lat);
+                const lng = parseFloat(data.lng);
+                updateDriverMarker(lat, lng);
+            }
+        };
+
+        socket.onclose = () => {
+            console.warn("WebSocket connection closed");
+        };
+    </script>
+</body>
+</html>
