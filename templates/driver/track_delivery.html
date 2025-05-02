@@ -103,7 +103,7 @@
                 }).addTo(map);
 
                 driverMarker = L.marker([driverLat, driverLng], {icon: L.icon({
-                    iconUrl: '{% static "img/delivery-truck-icon.png" %}', // Replace with your truck icon path
+                    iconUrl: '{% static "media/pictures/track-delivery.jpg" %}', // Replace with your truck icon path
                     iconSize: [32, 32],
                     iconAnchor: [16, 32],
                     popupAnchor: [0, -32]
@@ -117,7 +117,7 @@
             } else if (map) {
                 if (driverLat && driverLng && !driverMarker) {
                     driverMarker = L.marker([driverLat, driverLng], {icon: L.icon({
-                        iconUrl: '{% static "img/delivery-truck-icon.png" %}', // Replace with your truck icon path
+                        iconUrl: '{% static "media/pictures/track-delivery.jpg" %}', // Replace with your truck icon path
                         iconSize: [32, 32],
                         iconAnchor: [16, 32],
                         popupAnchor: [0, -32]
