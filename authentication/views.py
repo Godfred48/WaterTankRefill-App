@@ -1121,25 +1121,51 @@ from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from .models import User
 
+import logging
+from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
+from .models import User
+
+logger = logging.getLogger(__name__)
+# your_app_name/views.py
+import logging
+from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
+from .models import User
+
+logger = logging.getLogger(__name__)
+
 @login_required
 def get_opponent_location(request):
-    user = request.user
-    print("User is authenticated:", request.user.is_authenticated)
+    logger.info("get_opponent_location view called")
+    try:
+        user = request.user
+        logger.info(f"User: {user}, ID: {user.user_id}, is_customer: {user.is_customer}, is_driver: {user.is_driver}")
 
+        if user.is_customer:
+            opponent = User.objects.filter(is_driver=True).exclude(user_id=user.user_id).first()
+        elif user.is_driver:
+            opponent = User.objects.filter(is_customer=True).exclude(user_id=user.user_id).first()
+        else:
+            logger.warning("User role not recognized")
+            return JsonResponse({'error': 'User role not recognized'}, status=400)
 
-    # Match customer to driver or vice versa
-    if user.is_customer:
-        opponent = User.objects.filter(is_driver=True).exclude(user_id=user.user_id).first()
-    elif user.is_driver:
-        opponent = User.objects.filter(is_customer=True).exclude(user_id=user.user_id).first()
-    else:
-        return JsonResponse({'error': 'User role not recognized'}, status=400)
+        if opponent:
+            logger.info(f"Opponent found: {opponent}, ID: {opponent.user_id}, latitude: {opponent.latitude}, longitude: {opponent.longitude}") #Added opponent ID
+        else:
+            logger.warning("Opponent not found")
+            return JsonResponse({'error': 'Opponent not found'}, status=404)
 
-    if opponent and opponent.latitude and opponent.longitude:
-        return JsonResponse({
-            'latitude': float(opponent.latitude),
-            'longitude': float(opponent.longitude),
-            'full_name': opponent.full_name,
-        })
-    else:
-        return JsonResponse({'error': 'Opponent location not available'}, status=404)
+        if opponent.latitude is not None and opponent.longitude is not None:
+            return JsonResponse({
+                'latitude': float(opponent.latitude),
+                'longitude': float(opponent.longitude),
+                'full_name': opponent.get_full_name(),
+            })
+        else:
+            logger.warning("Opponent location not available (lat/long are None)")
+            return JsonResponse({'error': 'Opponent location not available'}, status=404)
+
+    except Exception as e:
+        logger.error(f"Exception in get_opponent_location: {e}", exc_info=True)
+        return JsonResponse({'error': f'Internal server error: {e}'}, status=500)
