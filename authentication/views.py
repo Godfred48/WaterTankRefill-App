@@ -1098,3 +1098,48 @@ def test_driver_delivery_tracking(request, delivery_id):
 @login_required
 def track_delivery_view(request):
     return render(request, 'delivery/test_delivery.html')
+
+
+
+# views.py
+
+
+
+@csrf_exempt
+@login_required
+def update_location(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        request.user.latitude = data.get('latitude')
+        request.user.longitude = data.get('longitude')
+        request.user.save(update_fields=['latitude', 'longitude'])
+        return JsonResponse({'status': 'location updated'})
+    return JsonResponse({'error': 'Invalid request'}, status=400)
+
+
+from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
+from .models import User
+
+@login_required
+def get_opponent_location(request):
+    user = request.user
+    print("User is authenticated:", request.user.is_authenticated)
+
+
+    # Match customer to driver or vice versa
+    if user.is_customer:
+        opponent = User.objects.filter(is_driver=True).exclude(user_id=user.user_id).first()
+    elif user.is_driver:
+        opponent = User.objects.filter(is_customer=True).exclude(user_id=user.user_id).first()
+    else:
+        return JsonResponse({'error': 'User role not recognized'}, status=400)
+
+    if opponent and opponent.latitude and opponent.longitude:
+        return JsonResponse({
+            'latitude': float(opponent.latitude),
+            'longitude': float(opponent.longitude),
+            'full_name': opponent.full_name,
+        })
+    else:
+        return JsonResponse({'error': 'Opponent location not available'}, status=404)
