@@ -44,5 +44,6 @@ urlpatterns = [
     path('delivery/<str:delivery_id>/status/', views.get_delivery_status, name='get_delivery_status'),
     path('customer/delivery/<str:delivery_id>/track/', views.customer_track_delivery, name='customer_track_delivery'),
     path('driver/delivery/<str:delivery_id>/track/', views.driver_track_delivery, name='driver_track_delivery'),
+    path('delivery/', views.track_delivery_view, name = "testing"),
 
 ]
