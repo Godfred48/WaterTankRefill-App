@@ -1091,3 +1091,10 @@ def test_driver_delivery_tracking(request, delivery_id):
         'delivery': delivery,
     }
     return render(request, 'test/delivery_tracking.html', context)
+
+
+
+
+@login_required
+def track_delivery_view(request):
+    return render(request, 'delivery/test_delivery.html')
