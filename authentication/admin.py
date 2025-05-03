@@ -7,27 +7,44 @@ from django.utils.translation import gettext_lazy as _
 from .models import User,Vendor,Driver,Tank,Order,Payment,Delivery,Review
 
 from django.contrib.admin.models import LogEntry
+from django.utils.html import format_html
 
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
     ordering = ['-date_joined']
-    list_display = ['phone_number', 'email', 'full_name', 'is_active', 'is_customer', 'is_vendor', 'is_driver', 'is_admin']
-    list_filter = ['is_customer', 'is_vendor', 'is_driver', 'is_admin', 'is_active', 'gender']
+    list_display = [
+        'phone_number', 'email', 'full_name', 'is_active',
+        'is_customer', 'is_vendor', 'is_driver', 'is_admin',
+        'latitude', 'longitude', 'photo_tag'
+    ]
+    list_filter = [
+        'is_customer', 'is_vendor', 'is_driver', 'is_admin',
+        'is_active', 'gender'
+    ]
     search_fields = ['phone_number', 'email', 'full_name']
-    
+
+    readonly_fields = ['user_id', 'date_joined', 'photo_preview']
+
     fieldsets = (
         (_('Personal Info'), {
-            'fields': ('user_id', 'phone_number', 'email', 'full_name', 'address', 'gender', 'date_joined')
+            'fields': (
+                'user_id', 'phone_number', 'email', 'full_name', 'address',
+                'gender', 'photo_preview', 'latitude', 'longitude', 'date_joined'
+            )
         }),
         (_('Roles & Permissions'), {
-            'fields': ('is_active', 'is_staff', 'is_superuser', 'is_customer', 'is_vendor', 'is_driver', 'is_admin', 'groups', 'user_permissions')
+            'fields': (
+                'is_active', 'is_staff', 'is_superuser',
+                'is_customer', 'is_vendor', 'is_driver', 'is_admin',
+                'groups', 'user_permissions'
+            )
         }),
         (_('Security'), {
             'fields': ('password',)
         }),
     )
-    
+
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
@@ -35,9 +52,17 @@ class UserAdmin(BaseUserAdmin):
         }),
     )
 
-    readonly_fields = ['user_id', 'date_joined']
+    def photo_tag(self, obj):
+        if obj.photo:
+            return format_html('<img src="{}" style="width: 40px; height: 40px; border-radius: 50%;" />', obj.photo.url)
+        return "-"
+    photo_tag.short_description = 'Photo'
 
-
+    def photo_preview(self, obj):
+        if obj.photo:
+            return format_html('<img src="{}" style="width: 100px; height: 100px; border-radius: 8px;" />', obj.photo.url)
+        return "No Photo"
+    photo_preview.short_description = 'Current Photo'
 
     
 
