@@ -845,6 +845,7 @@ class PaymentListView(View):
             }
             return render(request, self.template_name, context)
         except Exception as e:
+            print(e)
             messages.error(request, f"An error occurred while fetching payments: {e}")
             return redirect('vendor_dashboard')
 
