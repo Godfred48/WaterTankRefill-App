@@ -2,12 +2,11 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Track Delivery</title>
+    <title>Live Location Tracking</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
-    
     <style>
         body { margin: 0; padding: 0; }
         #map { width: 100%; height: 100vh; }
@@ -20,25 +19,56 @@
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
 
     <script>
-        // Default to Accra
-        var map = L.map('map').setView([5.6037, -0.1870], 12);
-        
+        let userMarker = null;
+        let opponentMarker = null;
+        const map = L.map('map').setView([5.6037, -0.1870], 12);
+
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
 
-        // Try to get user's live position
+        const ws = new WebSocket('ws://' + window.location.host + '/ws/tracking/');
+
+        ws.onopen = () => console.log("WebSocket connected");
+        ws.onclose = () => console.log("WebSocket disconnected");
+
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            const lat = data.latitude;
+            const lng = data.longitude;
+            const name = data.full_name || "Opponent";
+
+            // Update opponent marker
+            if (opponentMarker) {
+                opponentMarker.setLatLng([lat, lng]);
+            } else {
+                opponentMarker = L.marker([lat, lng], { icon: L.icon({ iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png', iconSize: [25, 25] }) })
+                    .addTo(map)
+                    .bindPopup(`${name}'s location`)
+                    .openPopup();
+            }
+        };
+
+        // Track your location
         if (navigator.geolocation) {
             navigator.geolocation.watchPosition(
                 function(position) {
                     const lat = position.coords.latitude;
                     const lng = position.coords.longitude;
-                    const accuracy = position.coords.accuracy;
 
-                    L.marker([lat, lng]).addTo(map).bindPopup("You are here").openPopup();
-                    L.circle([lat, lng], { radius: accuracy }).addTo(map);
+                    if (userMarker) {
+                        userMarker.setLatLng([lat, lng]);
+                    } else {
+                        userMarker = L.marker([lat, lng])
+                            .addTo(map)
+                            .bindPopup("You are here")
+                            .openPopup();
+                    }
 
                     map.setView([lat, lng], 14);
+
+                    // Send to WebSocket
+                    ws.send(JSON.stringify({ latitude: lat, longitude: lng }));
                 },
                 function(error) {
                     console.error("Geolocation error:", error);
@@ -46,11 +76,8 @@
                 { enableHighAccuracy: true }
             );
         } else {
-            alert("Geolocation is not supported by your browser.");
+            alert("Geolocation not supported.");
         }
     </script>
-
-
-
 </body>
 </html>
