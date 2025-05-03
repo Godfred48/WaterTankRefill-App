@@ -51,7 +51,7 @@
 
         // Function to update opponent location
         function updateOpponentLocation() {
-            fetch('/get-opponent-location/',{
+            fetch("{% url 'get_opponent_location' %}",{
     method: 'GET',
     credentials: 'include'
 })
@@ -100,7 +100,7 @@
                     map.setView([lat, lng], 14);
 
                     // Send location to backend
-                    fetch('/post-location/', {
+                    fetch("{% url 'post_location' %}", {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
