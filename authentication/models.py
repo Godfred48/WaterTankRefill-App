@@ -103,6 +103,10 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_driver = models.BooleanField(default=False)
     is_admin = models.BooleanField(default=False)
 
+    # Store the latest known location of the user
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+
     groups = models.ManyToManyField(Group, related_name="custom_user_groups", blank=True)
     user_permissions = models.ManyToManyField(Permission, related_name="custom_user_permissions", blank=True)
 
