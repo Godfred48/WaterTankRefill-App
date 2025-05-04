@@ -4,29 +4,60 @@
     <meta charset="UTF-8">
     <title>Live Tracking</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+    
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <style>
         body { margin: 0; padding: 0; font-family: sans-serif; }
         #map { width: 100%; height: 100vh; }
+        #distance-display {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+            font-weight: bold;
+            z-index: 999;
+        }
     </style>
 </head>
 <body>
     <div id="map"></div>
+    <div id="distance-display">Distance: -- km</div>
 
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script>
-        const map = L.map('map').setView([5.6037, -0.1870], 13); // Accra center
+        const map = L.map('map').setView([5.6037, -0.1870], 13); // Accra
+
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
 
         let userMarker = null;
         let opponentMarker = null;
+        let routeLine = null;
 
-        // CSRF token helper
+        const greenIcon = new L.Icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png',
+            shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+        });
+
+        const blueIcon = new L.Icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png',
+            shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+        });
+
         function getCookie(name) {
             const cookies = document.cookie.split(';');
             for (let cookie of cookies) {
@@ -34,10 +65,24 @@
                     return decodeURIComponent(cookie.trim().split('=')[1]);
                 }
             }
+            return null;
         }
+
         const csrftoken = getCookie('csrftoken');
 
-        // Track and send location
+        function getDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Radius of the earth in km
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a =
+                Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            const distance = R * c;
+            return distance.toFixed(2); // in km
+        }
+
         function sendLocationAndUpdateMap(lat, lng) {
             fetch("{% url 'update_location' %}", {
                 method: 'POST',
@@ -49,29 +94,52 @@
             })
             .then(response => response.json())
             .then(data => {
-                // User marker
-                if (data.you && data.you.latitude && data.you.longitude) {
-                    const userLatLng = [data.you.latitude, data.you.longitude];
-                    if (!userMarker) {
-                        userMarker = L.marker(userLatLng).addTo(map).bindPopup(data.you.full_name).openPopup();
-                    } else {
-                        userMarker.setLatLng(userLatLng).bindPopup(data.you.full_name);
-                    }
+                const userLatLng = [data.you.latitude, data.you.longitude];
+                const opponentLatLng = data.opponent.latitude && data.opponent.longitude
+                    ? [data.opponent.latitude, data.opponent.longitude]
+                    : null;
+
+                // Add or update user marker
+                if (!userMarker) {
+                    userMarker = L.marker(userLatLng, { icon: greenIcon })
+                        .addTo(map)
+                        .bindTooltip(data.you.full_name, { permanent: true, direction: 'top' });
                     map.setView(userLatLng, 14);
+                } else {
+                    userMarker.setLatLng(userLatLng);
+                    userMarker.setTooltipContent(data.you.full_name);
                 }
 
-                // Opponent marker
-                if (data.opponent && data.opponent.latitude && data.opponent.longitude) {
-                    const oppLatLng = [data.opponent.latitude, data.opponent.longitude];
+                // Add or update opponent marker
+                if (opponentLatLng) {
                     if (!opponentMarker) {
-                        opponentMarker = L.marker(oppLatLng, {
-                            icon: L.icon({
-                                iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png',
-                                iconSize: [25, 25]
-                            })
-                        }).addTo(map).bindPopup(data.opponent.full_name).openPopup();
+                        opponentMarker = L.marker(opponentLatLng, { icon: blueIcon })
+                            .addTo(map)
+                            .bindTooltip(data.opponent.full_name, { permanent: true, direction: 'top' });
                     } else {
-                        opponentMarker.setLatLng(oppLatLng).bindPopup(data.opponent.full_name);
+                        opponentMarker.setLatLng(opponentLatLng);
+                        opponentMarker.setTooltipContent(data.opponent.full_name);
+                    }
+
+                    // Draw or update route line
+                    if (routeLine) {
+                        routeLine.setLatLngs([userLatLng, opponentLatLng]);
+                    } else {
+                        routeLine = L.polyline([userLatLng, opponentLatLng], { color: 'red', weight: 3 })
+                            .addTo(map);
+                    }
+
+                    // Update distance
+                    const distance = getDistance(
+                        userLatLng[0], userLatLng[1],
+                        opponentLatLng[0], opponentLatLng[1]
+                    );
+                    document.getElementById('distance-display').innerText = `Distance: ${distance} km`;
+                } else {
+                    document.getElementById('distance-display').innerText = `Waiting for opponent...`;
+                    if (routeLine) {
+                        map.removeLayer(routeLine);
+                        routeLine = null;
                     }
                 }
             })
@@ -85,7 +153,6 @@
                 { enableHighAccuracy: true }
             );
 
-            // Refresh every 5 seconds
             setInterval(() => {
                 navigator.geolocation.getCurrentPosition(
                     pos => sendLocationAndUpdateMap(pos.coords.latitude, pos.coords.longitude),
