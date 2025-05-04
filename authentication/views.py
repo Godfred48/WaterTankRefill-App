@@ -1105,29 +1105,16 @@ def track_delivery_view(request):
 
 
 
-@csrf_exempt
-@login_required
-def update_location(request):
-    if request.method == 'POST':
-        data = json.loads(request.body)
-        request.user.latitude = data.get('latitude')
-        request.user.longitude = data.get('longitude')
-        request.user.save(update_fields=['latitude', 'longitude'])
-        return JsonResponse({'status': 'location updated'})
-    return JsonResponse({'error': 'Invalid request'}, status=400)
-
-
-# your_app_name/views.py
 import json
 import logging
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
-from .models import User  # Assuming your user model is in the same app
+from .models import User
 
 logger = logging.getLogger(__name__)
 
 @login_required
-def update_customer_location(request):
+def update_location(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
@@ -1135,81 +1122,41 @@ def update_customer_location(request):
             longitude = data.get('longitude')
             user = request.user
 
-            if not user.is_customer:
-                return JsonResponse({'error': 'User is not a customer'}, status=403)
+            if latitude is None or longitude is None:
+                return JsonResponse({'error': 'Latitude and longitude are required.'}, status=400)
 
-            if latitude is not None and longitude is not None:
-                user.latitude = latitude
-                user.longitude = longitude
-                user.save()
-                logger.info(f"Customer {user.user_id} updated location: ({latitude}, {longitude})")
+            # Update user's own location
+            user.latitude = latitude
+            user.longitude = longitude
+            user.save(update_fields=['latitude', 'longitude'])
+            logger.info(f"{user.get_full_name()} updated location: ({latitude}, {longitude})")
 
-                # Find the associated driver (replace with your actual logic)
-                driver = User.objects.filter(is_driver=True).first() # Simple example
-                if driver:
-                    driver_location = {'latitude': float(driver.latitude) if driver.latitude else None,
-                                       'longitude': float(driver.longitude) if driver.longitude else None,
-                                       'full_name': driver.get_full_name()}
-                else:
-                    driver_location = {'latitude': None, 'longitude': None, 'full_name': 'No Driver Available'}
-
-                customer_location = {'latitude': float(user.latitude),
-                                     'longitude': float(user.longitude),
-                                     'full_name': user.get_full_name() + ' (You)'}
-
-                return JsonResponse({'customer': customer_location, 'driver': driver_location})
+            # Find opponent
+            if user.is_customer:
+                opponent = User.objects.filter(is_driver=True).exclude(pk=user.pk).first()
+            elif user.is_driver:
+                opponent = User.objects.filter(is_customer=True).exclude(pk=user.pk).first()
             else:
-                logger.warning(f"Customer {user.user_id} sent invalid location data.")
-                return JsonResponse({'error': 'Invalid location data'}, status=400)
-        except json.JSONDecodeError:
-            logger.error(f"Error decoding JSON from request for customer {request.user.user_id}.", exc_info=True)
-            return JsonResponse({'error': 'Invalid JSON'}, status=400)
+                return JsonResponse({'error': 'User role not recognized'}, status=403)
+
+            user_data = {
+                'latitude': float(user.latitude),
+                'longitude': float(user.longitude),
+                'full_name': user.get_full_name() + ' (You)'
+            }
+
+            opponent_data = {
+                'latitude': float(opponent.latitude) if opponent and opponent.latitude else None,
+                'longitude': float(opponent.longitude) if opponent and opponent.longitude else None,
+                'full_name': opponent.get_full_name() if opponent else 'No Opponent Found'
+            }
+
+            return JsonResponse({
+                'you': user_data,
+                'opponent': opponent_data
+            })
+
         except Exception as e:
-            logger.error(f"Error updating customer location for user {request.user.user_id}: {e}", exc_info=True)
-            return JsonResponse({'error': f'Internal server error: {e}'}, status=500)
-    else:
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
-
-@login_required
-def update_driver_location(request):
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            latitude = data.get('latitude')
-            longitude = data.get('longitude')
-            user = request.user
-
-            if not user.is_driver:
-                return JsonResponse({'error': 'User is not a driver'}, status=403)
-
-            if latitude is not None and longitude is not None:
-                user.latitude = latitude
-                user.longitude = longitude
-                user.save()
-                logger.info(f"Driver {user.user_id} updated location: ({latitude}, {longitude})")
-
-                # Find the associated customer (replace with your actual logic)
-                customer = User.objects.filter(is_customer=True).first() # Simple example
-                if customer:
-                    customer_location = {'latitude': float(customer.latitude) if customer.latitude else None,
-                                         'longitude': float(customer.longitude) if customer.longitude else None,
-                                         'full_name': customer.get_full_name()}
-                else:
-                    customer_location = {'latitude': None, 'longitude': None, 'full_name': 'No Customer Available'}
-
-                driver_location = {'latitude': float(user.latitude),
-                                   'longitude': float(user.longitude),
-                                   'full_name': user.get_full_name() + ' (You)'}
-
-                return JsonResponse({'driver': driver_location, 'customer': customer_location})
-            else:
-                logger.warning(f"Driver {user.user_id} sent invalid location data.")
-                return JsonResponse({'error': 'Invalid location data'}, status=400)
-        except json.JSONDecodeError:
-            logger.error(f"Error decoding JSON from request for driver {request.user.user_id}.", exc_info=True)
-            return JsonResponse({'error': 'Invalid JSON'}, status=400)
-        except Exception as e:
-            logger.error(f"Error updating driver location for user {request.user.user_id}: {e}", exc_info=True)
-            return JsonResponse({'error': f'Internal server error: {e}'}, status=500)
-    else:
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
+            logger.error(f"Location update error for {request.user}: {e}", exc_info=True)
+            return JsonResponse({'error': 'Internal Server Error'}, status=500)
+    return JsonResponse({'error': 'Method Not Allowed'}, status=405)
