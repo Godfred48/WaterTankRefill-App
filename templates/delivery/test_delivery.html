@@ -51,7 +51,8 @@
 
         // Function to update opponent location
         function updateOpponentLocation() {
-            fetch("{% url 'get_opponent_location' %}",{
+            const url = 'update_driver_location';
+            fetch(url,{
     method: 'GET',
     credentials: 'include'
 })
