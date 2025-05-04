@@ -29,6 +29,7 @@ from django.db.models.functions import TruncMonth, TruncWeek, TruncYear
 from django.core.serializers import serialize
 import json
 from django.views.decorators.csrf import csrf_exempt
+from datetime import timedelta
 
 
 
@@ -1104,9 +1105,10 @@ def track_delivery_view(request):
 # views.py
 
 
-
 import json
 import logging
+from datetime import timedelta
+from django.utils import timezone
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from .models import User
@@ -1126,34 +1128,56 @@ def update_location(request):
                 logger.warning("Latitude or longitude missing in request.")
                 return JsonResponse({'error': 'Latitude and longitude are required.'}, status=400)
 
-            # Log user role
             logger.info(f"{user.get_full_name()} (ID: {user.pk}) Role: customer={user.is_customer}, driver={user.is_driver}")
 
-            # Update user's location
+            # Update user location
             user.latitude = latitude
             user.longitude = longitude
-            user.save(update_fields=['latitude', 'longitude'])
+            user.last_location_update = timezone.now()
+            user.save(update_fields=['latitude', 'longitude', 'last_location_update'])
             logger.info(f"{user.get_full_name()} updated location to: ({latitude}, {longitude})")
 
-            # Print all users and their roles/locations
+            # Show all user locations
             logger.info("=== All Users Location Status ===")
             for u in User.objects.all():
                 logger.info(f"{u.get_full_name()} | Customer: {u.is_customer}, Driver: {u.is_driver} | Lat: {u.latitude}, Lng: {u.longitude}")
             logger.info("==================================")
 
+            recent_time = timezone.now() - timedelta(seconds=30)
+
             # Find opponent
             if user.is_customer:
-                opponent = User.objects.filter(is_driver=True).exclude(pk=user.pk).first()
+                opponent = User.objects.filter(
+                    is_driver=True,
+                    latitude__isnull=False,
+                    longitude__isnull=False,
+                    last_location_update__gte=recent_time
+                ).exclude(pk=user.pk).first()
             elif user.is_driver:
-                opponent = User.objects.filter(is_customer=True).exclude(pk=user.pk).first()
+                opponent = User.objects.filter(
+                    is_customer=True,
+                    latitude__isnull=False,
+                    longitude__isnull=False,
+                    last_location_update__gte=recent_time
+                ).exclude(pk=user.pk).first()
             else:
                 logger.warning(f"{user.get_full_name()} has unrecognized role.")
                 return JsonResponse({'error': 'User role not recognized'}, status=403)
 
             if opponent:
                 logger.info(f"Opponent found for {user.get_full_name()}: {opponent.get_full_name()} | Lat: {opponent.latitude}, Lng: {opponent.longitude}")
+                opponent_data = {
+                    'latitude': float(opponent.latitude),
+                    'longitude': float(opponent.longitude),
+                    'full_name': opponent.get_full_name()
+                }
             else:
-                logger.warning(f"No opponent found for {user.get_full_name()}.")
+                logger.warning(f"No opponent found for {user.get_full_name()}. Returning dummy opponent.")
+                opponent_data = {
+                    'latitude': float(user.latitude) + 0.0003,
+                    'longitude': float(user.longitude) + 0.0003,
+                    'full_name': 'Dummy Opponent (Test Only)'
+                }
 
             user_data = {
                 'latitude': float(user.latitude),
@@ -1161,11 +1185,7 @@ def update_location(request):
                 'full_name': user.get_full_name() + ' (You)'
             }
 
-            opponent_data = {
-                'latitude': float(opponent.latitude) if opponent and opponent.latitude else None,
-                'longitude': float(opponent.longitude) if opponent and opponent.longitude else None,
-                'full_name': opponent.get_full_name() if opponent else 'No Opponent Found'
-            }
+            print(opponent_data)
 
             return JsonResponse({
                 'you': user_data,
