@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Live Location Tracking</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <style>
+        body { margin: 0; padding: 0; font-family: sans-serif; }
+        #map { width: 100%; height: 100vh; }
+        .leaflet-popup-content-wrapper {
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+
+    <script>
+        let userMarker = null;
+        let opponentMarker = null;
+
+        const map = L.map('map').setView([5.6037, -0.1870], 13); // Default center (Accra)
+
+        // Tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        // CSRF token for POST requests
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        const csrftoken = getCookie('csrftoken');
+
+        // Function to update opponent location
+        function updateOpponentLocation() {
+            const url = 'update_driver_location';
+            fetch(url,{
+    method: 'GET',
+    credentials: 'include'
+})
+                .then(response => response.json())
+                .then(data => {
+                    if (data.lat && data.lng) {
+                        const lat = data.lat;
+                        const lng = data.lng;
+                        const name = data.name || 'Opponent';
+
+                        if (opponentMarker) {
+                            opponentMarker.setLatLng([lat, lng]);
+                        } else {
+                            opponentMarker = L.marker([lat, lng], {
+                                icon: L.icon({
+                                    iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png',
+                                    iconSize: [25, 25]
+                                })
+                            }).addTo(map)
+                              .bindPopup(`${name}'s current location`)
+                              .openPopup();
+                        }
+                    }
+                })
+                .catch(err => console.error('Error fetching opponent location:', err));
+        }
+
+        // Get user's location and update backend
+        if (navigator.geolocation) {
+            navigator.geolocation.watchPosition(
+                function (position) {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+
+                    // Update or create user marker
+                    if (userMarker) {
+                        userMarker.setLatLng([lat, lng]);
+                    } else {
+                        userMarker = L.marker([lat, lng])
+                            .addTo(map)
+                            .bindPopup("You are here")
+                            .openPopup();
+                    }
+
+                    // Center map on user
+                    map.setView([lat, lng], 14);
+
+                    // Send location to backend
+                    fetch("{% url 'post_location' %}", {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrftoken
+                        },
+                        body: JSON.stringify({
+                            latitude: lat,
+                            longitude: lng
+                        })
+                    });
+                },
+                function (error) {
+                    console.error("Geolocation error:", error);
+                },
+                { enableHighAccuracy: true }
+            );
+
+            // Fetch opponent location every 5 seconds
+            setInterval(updateOpponentLocation, 5000);
+
+        } else {
+            alert("Geolocation is not supported by your browser.");
+        }
+    </script>
+</body>
+</html>
