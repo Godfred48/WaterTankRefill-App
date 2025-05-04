@@ -47,6 +47,7 @@ urlpatterns = [
     path('delivery/', views.track_delivery_view, name = "testing"),
 
     path('post-location/', views.update_location, name='post_location'),
-    path('get-opponent-location/', views.get_opponent_location, name='get_opponent_location'),
+    path('update-customer-location/', views.update_customer_location, name='update_customer_location'),
+    path('update-driver-location/', views.update_driver_location, name='update_driver_location'),
 
 ]
