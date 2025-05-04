@@ -1123,13 +1123,23 @@ def update_location(request):
             user = request.user
 
             if latitude is None or longitude is None:
+                logger.warning("Latitude or longitude missing in request.")
                 return JsonResponse({'error': 'Latitude and longitude are required.'}, status=400)
 
-            # Update user's own location
+            # Log user role
+            logger.info(f"{user.get_full_name()} (ID: {user.pk}) Role: customer={user.is_customer}, driver={user.is_driver}")
+
+            # Update user's location
             user.latitude = latitude
             user.longitude = longitude
             user.save(update_fields=['latitude', 'longitude'])
-            logger.info(f"{user.get_full_name()} updated location: ({latitude}, {longitude})")
+            logger.info(f"{user.get_full_name()} updated location to: ({latitude}, {longitude})")
+
+            # Print all users and their roles/locations
+            logger.info("=== All Users Location Status ===")
+            for u in User.objects.all():
+                logger.info(f"{u.get_full_name()} | Customer: {u.is_customer}, Driver: {u.is_driver} | Lat: {u.latitude}, Lng: {u.longitude}")
+            logger.info("==================================")
 
             # Find opponent
             if user.is_customer:
@@ -1137,7 +1147,13 @@ def update_location(request):
             elif user.is_driver:
                 opponent = User.objects.filter(is_customer=True).exclude(pk=user.pk).first()
             else:
+                logger.warning(f"{user.get_full_name()} has unrecognized role.")
                 return JsonResponse({'error': 'User role not recognized'}, status=403)
+
+            if opponent:
+                logger.info(f"Opponent found for {user.get_full_name()}: {opponent.get_full_name()} | Lat: {opponent.latitude}, Lng: {opponent.longitude}")
+            else:
+                logger.warning(f"No opponent found for {user.get_full_name()}.")
 
             user_data = {
                 'latitude': float(user.latitude),
@@ -1159,4 +1175,5 @@ def update_location(request):
         except Exception as e:
             logger.error(f"Location update error for {request.user}: {e}", exc_info=True)
             return JsonResponse({'error': 'Internal Server Error'}, status=500)
+
     return JsonResponse({'error': 'Method Not Allowed'}, status=405)
