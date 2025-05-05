@@ -83,7 +83,8 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
-
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = 'home'
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -146,5 +147,22 @@ CHANNEL_LAYERS = {
         },
     },
 }
+
+
+# settings.py
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'  # or use console backend during dev
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'samwaterdeliveryapp@gmail.com'
+EMAIL_HOST_PASSWORD = 'kkggxvetrffqdfce'  # Your Gmail app password
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+
+
+# Default 'from' email for sending reset emails
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
 
 
