@@ -135,6 +135,15 @@
       </div>
       <button type="submit" class="btn btn-success w-100">Accept & Assign</button>
     </form>
+    {% if order.status == 'Pending' %}
+<form method="post" class="mt-2">
+  {% csrf_token %}
+  <input type="hidden" name="order_id" value="{{ order.order_id }}">
+  <input type="hidden" name="action" value="reject">
+  <button onclick="return confirm('Please are you sure you want to reject this order ?');" type="submit" class="btn btn-danger w-100">Reject Order</button>
+</form>
+{% endif %}
+
     {% else %}
     <p class="text-success">Order already {{ order.status }}</p>
     {% endif %}
