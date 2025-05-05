@@ -359,9 +359,15 @@ class VendorViewOrders(ListView):
     def post(self, request, *args, **kwargs):
         order_id = request.POST.get('order_id')
         driver_id = request.POST.get('driver_id')
+        action = request.POST.get('action')
         order = get_object_or_404(Order, order_id=order_id, vendor=request.user.vendor_profile)
 
         # Update order status to accepted
+        if action == 'reject':
+           order.status = 'Rejected'
+           order.save()
+           messages.warning(request, f"Order #{order_id} has been rejected.")
+           return redirect('vendor_orders')
         order.status = 'Accepted'
         messages.success(request, f"Order status updated successfully")
         order.save()
