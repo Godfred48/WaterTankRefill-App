@@ -18,7 +18,7 @@ from decimal import Decimal
 GENDER_CHOICES = [('Male', 'Male'), ('Female', 'Female')]
 STATUS_CHOICES = [('A', 'Available'), ('B', 'Busy')]
 TANK_STATUS = [('Available', 'Available'), ('Unavailable', 'Unavailable')]
-DELIVERY_STATUS = [('Pending', 'Pending'), ('In Progress', 'In Progress'), ('Delivered', 'Delivered')]
+DELIVERY_STATUS = [('Pending', 'Pending'), ('In Progress', 'In Progress'), ('Delivered', 'Delivered'),('Rejected', 'Rejected')]
 PAYMENT_METHODS = [('Momo On Delivery', 'Momo On Delivery'),  ('Cash On Delivery', 'Cash On Delivery')]
 DESCIPLINE_CHOICES = [('Active', 'Active'), ('Suspended', 'Suspended')]
 TANK_CHOICES = [('Horizontal Water Tank', 'Horizontal Water Tank'), ('Vertical Water Tank', 'Vertical Water Tank'), ('IBC Water Tank', 'IBC Water Tank')]
