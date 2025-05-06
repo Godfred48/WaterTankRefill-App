@@ -83,7 +83,7 @@ class HomeView(View):
 class SignUpView(FormView):
     template_name = 'test/signup.html'
     form_class = SignUpForm
-    success_url = reverse_lazy('test/login')
+    success_url = reverse_lazy('login')
 
     def form_valid(self, form):
         data = form.cleaned_data
@@ -440,8 +440,11 @@ class VendorViewOrders(ListView):
 class VendorDashboard(View):
     template_name = 'vendor/vendor_dashboard.html'
     def get(self, request, *args, **kwargs):
-        
-        vendor = request.user.vendor_profile
+        try:
+            vendor = request.user.vendor_profile
+        except Vendor.DoesNotExist:
+            messages.warning(request, "Please complete your vendor profile before accessing the dashboard.")
+            return redirect('vendor_profile_create')  # Replace with the correct URL name
         orders = Order.objects.filter(vendor=vendor).order_by('-order_date')
         completed_orders = orders.filter(is_complete=True)
         pending_orders = orders.filter(status="Pending")
@@ -1209,3 +1212,27 @@ def update_location(request):
             return JsonResponse({'error': 'Internal Server Error'}, status=500)
 
     return JsonResponse({'error': 'Method Not Allowed'}, status=405)
+
+
+
+# views.py
+
+from .forms import VendorCreateProfileForm
+
+class VendorProfileCreateView(LoginRequiredMixin, CreateView):
+    model = Vendor
+    form_class = VendorCreateProfileForm
+    template_name = 'vendor/vendor_profile_create.html'
+    success_url = reverse_lazy('vendor_dashboard')  # redirect after creation
+
+    def dispatch(self, request, *args, **kwargs):
+        # Prevent duplicate profiles
+        if hasattr(request.user, 'vendor_profile'):
+            messages.info(request, "You already have a vendor profile.")
+            return redirect('vendor_dashboard')
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        form.instance.user = self.request.user
+        messages.success(self.request, "Vendor profile created successfully!")
+        return super().form_valid(form)
