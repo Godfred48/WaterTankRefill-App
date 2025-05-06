@@ -20,7 +20,7 @@ STATUS_CHOICES = [('A', 'Available'), ('B', 'Busy')]
 TANK_STATUS = [('Available', 'Available'), ('Unavailable', 'Unavailable')]
 DELIVERY_STATUS = [('Pending', 'Pending'), ('In Progress', 'In Progress'), ('Delivered', 'Delivered'),('Rejected', 'Rejected')]
 PAYMENT_METHODS = [('Momo On Delivery', 'Momo On Delivery'),  ('Cash On Delivery', 'Cash On Delivery')]
-DESCIPLINE_CHOICES = [('Active', 'Active'), ('Suspended', 'Suspended')]
+DESCIPLINE_CHOICES = [('Active', 'Active'), ('Suspended', 'Suspended'),('Unavailable','Unavailable')]
 TANK_CHOICES = [('Horizontal Water Tank', 'Horizontal Water Tank'), ('Vertical Water Tank', 'Vertical Water Tank'), ('IBC Water Tank', 'IBC Water Tank')]
 
 VEHICLE_CHOICES = [
@@ -138,7 +138,7 @@ class Vendor(models.Model):
     business_name = models.CharField(max_length=100)
     location = models.CharField(max_length=255)
     price_per_liter = models.DecimalField(max_digits=10, decimal_places=2)
-    status = models.CharField(max_length=10, choices=DESCIPLINE_CHOICES, default='Active')
+    status = models.CharField(max_length=15, choices=DESCIPLINE_CHOICES, default='Active')
 
 
     def __str__(self):
