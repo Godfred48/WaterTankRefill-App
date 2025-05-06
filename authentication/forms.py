@@ -155,3 +155,22 @@ class VendorProfileForm(forms.ModelForm):
         if commit:
             vendor.save()
         return vendor
+
+
+
+# forms.py
+from django import forms
+from .models import Vendor
+
+class VendorCreateProfileForm(forms.ModelForm):
+    class Meta:
+        model = Vendor
+        fields = ['business_name', 'location', 'price_per_liter', 'status']
+        widgets = {
+            'status': forms.Select(attrs={'class': 'form-control'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super(VendorCreateProfileForm, self).__init__(*args, **kwargs)
+        for field in self.fields.values():
+            field.widget.attrs['class'] = 'form-control'
