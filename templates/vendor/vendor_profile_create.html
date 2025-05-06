@@ -7,11 +7,28 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
+    :root {
+      --bg-light: #f0f4f8;
+      --bg-dark: #1e1e1e;
+      --text-light: #333;
+      --text-dark: #f1f1f1;
+      --card-light: #fff;
+      --card-dark: #2a2a2a;
+      --primary: #0066cc;
+      --primary-dark: #004c99;
+    }
+
     body {
       margin: 0;
       font-family: 'Inter', sans-serif;
-      background: #f0f4f8;
-      color: #333;
+      background: var(--bg-light);
+      color: var(--text-light);
+      transition: background 0.3s, color 0.3s;
+    }
+
+    body.dark {
+      background: var(--bg-dark);
+      color: var(--text-dark);
     }
 
     .container {
@@ -22,9 +39,14 @@
       gap: 2rem;
       align-items: flex-start;
       padding: 2rem;
-      background: #fff;
+      background: var(--card-light);
       border-radius: 15px;
       box-shadow: 0 15px 25px rgba(0, 0, 0, 0.05);
+      transition: background 0.3s;
+    }
+
+    body.dark .container {
+      background: var(--card-dark);
     }
 
     .form-section, .chart-section {
@@ -34,7 +56,7 @@
     h2 {
       margin-bottom: 1.5rem;
       font-size: 1.8rem;
-      color: #0066cc;
+      color: var(--primary);
     }
 
     form label {
@@ -47,31 +69,53 @@
       width: 100%;
       padding: 0.75rem 1rem;
       margin-bottom: 1.25rem;
-      border: 1px solid #ddd;
+      border: 1px solid #ccc;
       border-radius: 8px;
+      background: #fff;
       transition: all 0.3s ease;
     }
 
+    body.dark form input,
+    body.dark form select {
+      background: #333;
+      color: #fff;
+      border-color: #555;
+    }
+
     form input:focus, form select:focus {
-      border-color: #0066cc;
+      border-color: var(--primary);
       box-shadow: 0 0 8px rgba(0, 102, 204, 0.2);
       outline: none;
     }
 
     button {
-      background-color: #0066cc;
+      background-color: var(--primary);
       color: white;
       padding: 0.75rem 2rem;
       border: none;
       border-radius: 8px;
       font-size: 1rem;
       cursor: pointer;
-      transition: transform 0.3s ease;
+      transition: transform 0.3s ease, background-color 0.3s;
     }
 
     button:hover {
       transform: translateY(-2px);
-      background-color: #004c99;
+      background-color: var(--primary-dark);
+    }
+
+    .toggle-dark {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      cursor: pointer;
+      font-size: 1rem;
+      background: none;
+      border: 1px solid var(--primary);
+      color: var(--primary);
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      transition: 0.3s;
     }
 
     canvas {
@@ -98,14 +142,36 @@
         transform: translateY(0);
       }
     }
+
+    .submit-animation {
+      display: none;
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: var(--primary);
+      animation: pulse 1s infinite;
+      margin-top: 1rem;
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+      50% {
+        opacity: 0.6;
+        transform: scale(1.05);
+      }
+    }
   </style>
 </head>
 <body>
 
+<button class="toggle-dark" onclick="toggleDarkMode()">🌗 Toggle Dark Mode</button>
+
 <div class="container fade-in">
   <div class="form-section">
     <h2>Create Your Vendor Profile</h2>
-    <form method="post">
+    <form method="post" id="vendorForm">
       {% csrf_token %}
       <label for="id_business_name">Business Name</label>
       {{ form.business_name }}
@@ -119,6 +185,7 @@
       <label for="id_status">Status</label>
       {{ form.status }}
 
+      <div class="submit-animation" id="submitAnimation">🚚 Ready to deliver water...</div>
       <button type="submit">Submit Profile</button>
     </form>
   </div>
@@ -131,14 +198,18 @@
 </div>
 
 <script>
-  const ctx = document.getElementById('progressChart').getContext('2d');
-  const progressChart = new Chart(ctx, {
+  let filledFields = 0;
+  const totalFields = 4;
+  const form = document.getElementById('vendorForm');
+  const animation = document.getElementById('submitAnimation');
+
+  const chart = new Chart(document.getElementById('progressChart').getContext('2d'), {
     type: 'doughnut',
     data: {
       labels: ['Completed', 'Remaining'],
       datasets: [{
         label: 'Profile Completion',
-        data: [60, 40], // Simulate 60% complete
+        data: [0, 100],
         backgroundColor: ['#00b894', '#dfe6e9'],
         borderWidth: 1,
         hoverOffset: 4
@@ -148,14 +219,41 @@
       responsive: true,
       cutout: '70%',
       plugins: {
-        legend: {
-          position: 'bottom'
-        }
+        legend: { position: 'bottom' }
       }
     }
   });
-</script>
-{% include 'messages.html' %}
 
+  function updateChartProgress() {
+    const inputs = form.querySelectorAll('input, select');
+    let count = 0;
+    inputs.forEach(input => {
+      if (input.value.trim() !== '') count++;
+    });
+    const percent = Math.round((count / totalFields) * 100);
+    chart.data.datasets[0].data = [percent, 100 - percent];
+    chart.update();
+  }
+
+  form.querySelectorAll('input, select').forEach(input => {
+    input.addEventListener('input', updateChartProgress);
+  });
+
+  form.addEventListener('submit', function(e) {
+    e.preventDefault(); // Prevent actual submission
+
+    animation.style.display = 'block'; // Show animation
+    setTimeout(() => {
+      animation.style.display = 'none';
+      form.submit(); // Submit after 3 seconds
+    }, 3000);
+  });
+
+  function toggleDarkMode() {
+    document.body.classList.toggle('dark');
+  }
+</script>
+
+{% include 'messages.html' %}
 </body>
 </html>
