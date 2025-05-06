@@ -232,7 +232,7 @@ class Vendors(View):
                 Q(phone__icontains=query)
             )
         else:
-           vendors = Vendor.objects.all()
+           vendors = Vendor.objects.filter(status="Active")
         #vendors = Vendor.objects.all()
         form = OrderForm()
         context = {'vendors': vendors, 'form': form}
