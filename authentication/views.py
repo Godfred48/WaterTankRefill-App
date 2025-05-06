@@ -273,7 +273,8 @@ class CustomerDashboard(View):
     def get(self, request,*args,**kwargs):
         orders = Order.objects.filter(customer=request.user).order_by('-order_date')
         completed_orders = orders.filter(is_complete=True)
-        pending_orders = orders.filter(is_complete=False)
+        rejected_orders = orders.filter(status="Rejected")
+        pending_orders = orders.filter(status="Pending")
         active_refills = orders.filter(status='Delivered') 
 
         context = {
@@ -281,6 +282,7 @@ class CustomerDashboard(View):
             'completed_orders_count': completed_orders.count(),
             'pending_orders_count': pending_orders.count(),
             'active_refills_count': active_refills.count(),
+            'rejected_orders_count':rejected_orders.count(),
         }
         return render(request, self.template_name,context)
 
@@ -300,7 +302,8 @@ class CustomerViewOrders(ListView):
         context = super().get_context_data(**kwargs)
         orders = Order.objects.filter(customer=self.request.user).order_by('-order_date')
         completed_orders = orders.filter(is_complete=True)
-        pending_orders = orders.filter(is_complete=False)
+        pending_orders = orders.filter(status="Pending")
+        rejected_orders = orders.filter(status="Rejected")
         active_refills = orders.filter(status='Delivered') 
          # Monthly order analysis
         monthly_orders = (
@@ -338,6 +341,7 @@ class CustomerViewOrders(ListView):
             'monthly_orders': monthly_orders,
             'yearly_orders': yearly_orders,
             'last_delivery': last_delivery,
+            'rejected_orders_count':rejected_orders.count(),
         })
         context['monthly_data_json'] = json.dumps(monthly_data)
         context['yearly_data_json'] = json.dumps(yearly_data)
@@ -440,7 +444,8 @@ class VendorDashboard(View):
         vendor = request.user.vendor_profile
         orders = Order.objects.filter(vendor=vendor).order_by('-order_date')
         completed_orders = orders.filter(is_complete=True)
-        pending_orders = orders.filter(is_complete=False)
+        pending_orders = orders.filter(status="Pending")
+        rejected_orders = orders.filter(status="Rejected")
         active_refills = orders.filter(status='Delivered') 
 
         # Monthly order analysis
@@ -460,6 +465,7 @@ class VendorDashboard(View):
             'completed_orders_count': completed_orders.count(),
             'pending_orders_count': pending_orders.count(),
             'active_refills_count': active_refills.count(),
+            'rejected_orders_count': rejected_orders.count(),
             'monthly_data_json': json.dumps(monthly_data),
             
         }
