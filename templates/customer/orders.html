@@ -142,19 +142,25 @@
 
   <!-- Order Summary Cards -->
   <div class="row g-3 mb-5">
-    <div class="col-md-4" data-aos="fade-up" data-aos-delay="100">
+    <div class="col-md-3" data-aos="fade-up" data-aos-delay="100">
       <div class="card shadow-sm p-4 text-center">
         <h6 class="text-muted">Total Orders</h6>
         <h3>{{ total_orders }}</h3>
       </div>
     </div>
-    <div class="col-md-4" data-aos="fade-up" data-aos-delay="200">
+    <div class="col-md-3" data-aos="fade-up" data-aos-delay="200">
       <div class="card shadow-sm p-4 text-center">
         <h6 class="text-muted">Pending Orders</h6>
         <h3>{{ pending_orders.count }}</h3>
       </div>
     </div>
-    <div class="col-md-4" data-aos="fade-up" data-aos-delay="300">
+    <div class="col-md-3" data-aos="fade-up" data-aos-delay="200">
+      <div class="card shadow-sm p-4 text-center">
+        <h6 class="text-muted">Rejected Orders</h6>
+        <h3>{{ rejected_orders_count }}</h3>
+      </div>
+    </div>
+    <div class="col-md-3" data-aos="fade-up" data-aos-delay="300">
       <div class="card shadow-sm p-4 text-center">
         <h6 class="text-muted">Last Delivery</h6>
         {% if last_delivery %}
