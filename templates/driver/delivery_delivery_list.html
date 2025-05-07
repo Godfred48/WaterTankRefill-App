@@ -110,6 +110,7 @@ canvas {
                                 <th>Date</th>
                                 <th>Customer</th>
                                 <th>Address</th>
+                                <th>Amount</th>
                                 <th>Status</th>
                                 <th class="text-center">Track</th>
                                 <th class="text-center">Details</th>
@@ -122,6 +123,7 @@ canvas {
                                 <td>{{ delivery.delivery_date|date:"Y-m-d H:i" }}</td>
                                 <td>{{ delivery.order.customer.get_full_name }}</td>
                                 <td>{{ delivery.order.delivery_location }}</td>
+                                <td>{{ delivery.order.get_total_price }}</td>
                                 <td>
                                     <span class="badge rounded-pill
                                           {% if delivery.status == 'Pending' %}bg-warning text-dark{% elif delivery.status == 'In Progress' %}bg-info{% elif delivery.status == 'Delivered' %}bg-success{% elif delivery.status == 'Failed' %}bg-danger{% endif %}">
