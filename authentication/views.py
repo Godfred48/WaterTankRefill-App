@@ -30,6 +30,7 @@ from django.core.serializers import serialize
 import json
 from django.views.decorators.csrf import csrf_exempt
 from datetime import timedelta
+from django.db.models import Prefetch
 
 
 
@@ -300,7 +301,10 @@ class CustomerViewOrders(ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        orders = Order.objects.filter(customer=self.request.user).order_by('-order_date')
+        #orders = Order.objects.filter(customer=self.request.user).order_by('-order_date')
+        orders = Order.objects.filter(customer=self.request.user).prefetch_related(
+    Prefetch('delivery', queryset=Delivery.objects.select_related('driver__user'))
+)
         completed_orders = orders.filter(is_complete=True)
         pending_orders = orders.filter(status="Pending")
         rejected_orders = orders.filter(status="Rejected")
@@ -345,6 +349,7 @@ class CustomerViewOrders(ListView):
         })
         context['monthly_data_json'] = json.dumps(monthly_data)
         context['yearly_data_json'] = json.dumps(yearly_data)
+        #context['new_orders'] = new_orders
         return context
 
 
