@@ -182,6 +182,7 @@
             <tr>
               <th>Date</th>
               <th>Vendor</th>
+              <th>Driver</th>
               <th>Tank Type</th>
               <th>Liters</th>
               <th>Amount (GHS)</th>
@@ -193,6 +194,15 @@
               <tr>
                 <td>{{ order.order_date|date:"M d, Y" }}</td>
                 <td>{{ order.vendor.user.get_full_name }}</td>
+                {% with order.delivery.first as delivery %}
+      <td>
+        {% if delivery and delivery.driver %}
+          {{ delivery.driver.user.full_name }}
+        {% else %}
+          <em>Not Assigned</em>
+        {% endif %}
+      </td>
+    {% endwith %}
                 <td>{{ order.get_tank_type_display }}</td>
                 <td>{{ order.litres }}</td>
                 <td>GHS {{ order.get_total_price|floatformat:2 }}</td>
