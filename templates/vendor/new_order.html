@@ -110,6 +110,11 @@
 <!-- Main Content -->
 <div class="main-content">
   <h2 class="mb-4">New Orders</h2>
+  <a href="{% url 'vendor_full_report_pdf' %}" class="btn btn-outline-primary mb-4">
+    <i class="bi bi-file-earmark-pdf-fill"></i> Download Full Vendor Report (PDF)
+  </a>
+  
+  
 
   {% for order in orders %}
   <div class="card p-4 shadow-sm mb-4">
