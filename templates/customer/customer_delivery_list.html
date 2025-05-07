@@ -73,6 +73,8 @@
                                 <tr>
                                     <th>Delivery ID</th>
                                     <th>Order ID</th>
+                                    <th>Driver</th> 
+                                    <th>Driver's Contact</th>
                                     <th>Delivery Status</th>
                                     <th>Delivery Date</th>
                                     <th>Actions</th>
@@ -83,6 +85,20 @@
                                     <tr>
                                         <td>{{ delivery.delivery_id }}</td>
                                         <td>{{ delivery.order.order_id }}</td>
+                                        <td>
+                                            {% if delivery.driver %}
+                                                {{ delivery.driver.user.full_name }}
+                                            {% else %}
+                                                <span class="text-muted">Not Assigned</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if delivery.driver %}
+                                                {{ delivery.driver.user.phone_number }}
+                                            {% else %}
+                                                <em>N/A</em>
+                                            {% endif %}
+                                        </td>
                                         <td>
                                             {% if delivery.delivery_status == 'Pending' %}
                                                 <span class="badge badge-warning">{{ delivery.delivery_status }}</span>
