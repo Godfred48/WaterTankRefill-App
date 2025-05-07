@@ -23,6 +23,7 @@ urlpatterns = [
     path('vendor/profile/<str:user_id>/', VendorProfileDetailView.as_view(), name='vendor_profile_detail'),
     path('vendor/profile/', VendorProfileView.as_view(), name='vendor_profile'),
     path('vendor/payments/', PaymentListView.as_view(), name='vendor_payments'),
+    path('vendor/report/full/', VendorFullReportPDFView.as_view(), name='vendor_full_report_pdf'),
     
     path('customer/vendors/', Vendors.as_view(), name='vendors'),
     path('vendor/orders/', VendorViewOrders.as_view(), name='vendor_orders'),
@@ -42,6 +43,7 @@ urlpatterns = [
     path('driver/profile/', DriverProfileView.as_view(), name='driver_profile'),
     path('driver/history/', DeliveryHistoryView.as_view(), name='delivery_history'),
     path('driver/deliveries/', DriverDeliveryListView.as_view(), name='driver_delivery_list'),
+    path('driver/delivery-report/', DriverDeliveryReportView.as_view(), name='driver_delivery_report'),
     #delivery urls path
     path('delivery/<str:delivery_id>/status/', views.get_delivery_status, name='get_delivery_status'),
     path('customer/delivery/<str:delivery_id>/track/', views.customer_track_delivery, name='customer_track_delivery'),
