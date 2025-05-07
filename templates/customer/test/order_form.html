@@ -47,6 +47,7 @@
         <div class="card p-3 shadow vendor-card">
           <h5 class="card-title">{{ vendor.business_name }}</h5>
           <p class="card-text mb-1"><strong>Location:</strong> {{ vendor.location }}</p>
+          <p class="card-text mb-1"><strong>Contact:</strong> {{ vendor.user.phone_number }}</p>
           <p class="card-text"><strong>Price:</strong> GHS {{ vendor.price_per_liter }}</p>
           <button class="btn btn-primary w-100" onclick="openOrderModal('{{ vendor.vendor_id }}', '{{ vendor.business_name }}', '{{ vendor.price_per_liter }}')">Order</button>
         </div>
