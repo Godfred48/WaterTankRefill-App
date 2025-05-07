@@ -212,6 +212,8 @@
 
     <div class="container">
         <h2 class="page-title">Assigned Deliveries</h2>
+        <a href="{% url 'driver_delivery_report' %}" class="btn btn-primary my-3">Download Delivery Report (PDF)</a>
+
 
         {% if deliveries %}
         <div class="card-list-container">
@@ -221,6 +223,9 @@
                     <h5 class="card-title">Order #{{ delivery.order.order_id }}</h5>
                     <p class="card-text">
                         <i class="bi bi-person-fill me-2"></i> {{ delivery.order.customer.get_full_name }}
+                    </p>
+                    <p class="card-text">
+                        <i class="bi bi-person-fill me-2"></i> {{ delivery.order.customer.phone_number }}
                     </p>
                     <p class="card-text">
                         <i class="bi bi-currency-dollar me-2"></i> {{ delivery.order.get_total_price }}
